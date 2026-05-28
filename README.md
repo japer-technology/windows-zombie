@@ -4,11 +4,30 @@
   <img src="https://raw.githubusercontent.com/japer-technology/windows11-zombie/main/LOGO.png" alt="Windows 11 Zombie" width="500">
 </p>
 
+<p align="center">
+  <a href="https://github.com/japer-technology/windows11-zombie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/japer-technology/windows11-zombie/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/japer-technology/windows11-zombie/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/japer-technology/windows11-zombie?display_name=tag&sort=semver"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/japer-technology/windows11-zombie"></a>
+  <a href="SECURITY.md"><img alt="Security policy" src="https://img.shields.io/badge/security-policy-blue"></a>
+  <a href="https://securityscorecards.dev/viewer/?uri=github.com/japer-technology/windows11-zombie"><img alt="OpenSSF Scorecard" src="https://api.securityscorecards.dev/projects/github.com/japer-technology/windows11-zombie/badge"></a>
+</p>
+
 > **Windows 11 Zombie adds a private, policy-gated AI Systems
 > Administrator to Microsoft Windows 11.** It installs a local chat
 > daemon, a portable Python/Node agent runtime, Windows Service
 > supervision, Defender Firewall rules, and ACL-protected state under
 > `C:\ProgramData\AiZombie\`.
+
+## Why?
+
+Running an AI agent that can actually administer your Windows host
+means giving it real privileges. Most "AI assistant" projects either
+sandbox themselves into uselessness or hand the model a root shell
+with no audit trail. Windows 11 Zombie takes the middle path: full
+local capability, gated by an **editable, auditable policy** with
+explicit operator approval for anything mutating and a confirmation
+phrase for anything destructive. The chat UI is loopback-only; the
+only outbound traffic is to the provider you chose.
 
 The project targets **Windows 11 22H2+ Pro or Enterprise**. Windows 11
 Home can run the agent, but Group Policy and some firewall profile controls
@@ -17,6 +36,12 @@ installer also creates a local Administrators account named `zombie` for
 operators who want a dedicated service identity.
 
 Repository: <https://github.com/japer-technology/windows11-zombie>
+
+> ⚠️ **Production checklist.** Read [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md)
+> and [`docs/OPERATIONS.md`](docs/OPERATIONS.md) before installing on
+> any machine you care about. The [`docs/INDEX.md`](docs/INDEX.md)
+> landing page maps every operator/security/contributor task to the
+> right doc.
 
 ## What it installs
 
