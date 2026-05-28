@@ -1,0 +1,26 @@
+{
+  "title": "windows11-zombie",
+  "schemaVersion": 39,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Tool invocations",
+      "targets": [{"expr": "windows11_zombie_tool_invocations_total"}]
+    },
+    {
+      "type": "stat",
+      "title": "Policy denies",
+      "targets": [{"expr": "windows11_zombie_policy_denies_total"}]
+    },
+    {
+      "type": "stat",
+      "title": "HTTP requests",
+      "targets": [{"expr": "windows11_zombie_http_requests_total"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tool invocations / sec",
+      "targets": [{"expr": "rate(windows11_zombie_tool_invocations_total[5m])"}]
+    }
+  ]
+}

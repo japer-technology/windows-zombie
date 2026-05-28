@@ -1,0 +1,70 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build-and-publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Lint + test
+        shell: pwsh
+        run: |
+          ./build.ps1 lint
+          ./build.ps1 test
+
+      - name: Package
+        shell: pwsh
+        run: ./build.ps1 package
+
+      - name: Generate Python SBOM
+        shell: pwsh
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py requirements payload/agent/requirements.txt --output-format json --output-file dist/sbom-python.json
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: 'dist/windows11-zombie-*.zip'
+
+      - name: Extract release notes
+        id: notes
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
+          $content = Get-Content CHANGELOG.md -Raw
+          $body = if ($content -match "(?ms)## \[$([regex]::Escape($tag.TrimStart('v')))\].*?(?=\n## |\Z)") { $matches[0] } else { "Release $tag" }
+          $body | Out-File -FilePath release-notes.md -Encoding utf8
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/windows11-zombie-*.zip
+            dist/SHA256SUMS
+            dist/sbom-python.json
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') }}

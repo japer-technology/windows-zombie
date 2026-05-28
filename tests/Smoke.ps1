@@ -36,7 +36,7 @@ function Add-Failure([string]$msg) {
 function Test-Syntax {
     Write-Host "==> PowerShell syntax parse"
     $ps1 = Get-ChildItem -Recurse -File -Include *.ps1, *.psm1 -Path $Repo |
-        Where-Object { $_.FullName -notmatch '[\\/]dist[\\/]' }
+        Where-Object { $_.FullName -notmatch '[\\/]dist[\\/]' -and $_.FullName -notmatch '[\\/]examples[\\/]dsc[\\/]' }
     foreach ($f in $ps1) {
         $tokens = $null; $errs = $null
         [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errs)

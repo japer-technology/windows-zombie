@@ -1,0 +1,22 @@
+<Configuration>
+  <!--
+    Windows Sandbox configuration that mounts this repository read-only at
+    C:\windows11-zombie-src and launches Install.ps1 install inside the
+    ephemeral VM. Open this file with a double click on Windows 11 Pro /
+    Enterprise with the "Windows Sandbox" optional feature enabled.
+
+    The sandbox is wiped on close — perfect for kicking the tyres without
+    touching your real machine. See README warnings.
+  -->
+  <Networking>Default</Networking>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>..\..</HostFolder>
+      <SandboxFolder>C:\windows11-zombie-src</SandboxFolder>
+      <ReadOnly>true</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell -NoProfile -ExecutionPolicy Bypass -NoExit -Command "Set-Location C:\windows11-zombie-src; .\scripts\Install.ps1 install -AssumeYes"</Command>
+  </LogonCommand>
+</Configuration>

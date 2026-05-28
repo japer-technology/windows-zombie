@@ -53,7 +53,7 @@ function Invoke-Help {
 function Invoke-Lint {
     Write-Host "==> PowerShell syntax parse"
     $ps1Files = Get-ChildItem -Recurse -File -Include *.ps1, *.psm1, *.psd1 -ErrorAction SilentlyContinue |
-        Where-Object { $_.FullName -notmatch '\\dist\\' -and $_.FullName -notmatch '/dist/' }
+        Where-Object { $_.FullName -notmatch '\\dist\\' -and $_.FullName -notmatch '/dist/' -and $_.FullName -notmatch '[\\/]examples[\\/]dsc[\\/]' }
     foreach ($f in $ps1Files) {
         $tokens = $null; $errs = $null
         [void][System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errs)
@@ -182,10 +182,17 @@ function Invoke-Package {
     $paths = @(
         'scripts', 'payload', 'tests', 'build.ps1', 'VERSION',
         'README.md', 'CHANGELOG.md', 'CONTRIBUTING.md', 'CODE_OF_CONDUCT.md',
-        'LICENSE', '.editorconfig', 'SECURITY.md', 'docs'
+        'LICENSE', '.editorconfig', 'SECURITY.md', 'docs', 'schemas'
     ) | Where-Object { Test-Path (Join-Path $RepoRoot $_) }
     Compress-Archive -Path ($paths | ForEach-Object { Join-Path $RepoRoot $_ }) -DestinationPath $zip -Force
+
+    # Emit SHA256SUMS alongside the zip so releases are verifiable.
+    $sumsPath = Join-Path $dist "SHA256SUMS"
+    $sha = (Get-FileHash -Algorithm SHA256 -LiteralPath $zip).Hash.ToLower()
+    "$sha  $(Split-Path -Leaf $zip)" | Set-Content -LiteralPath $sumsPath -Encoding ascii -NoNewline
+    Add-Content -LiteralPath $sumsPath -Value ""
     Write-Host "Wrote $zip"
+    Write-Host "Wrote $sumsPath"
 }
 
 function Invoke-Clean {

@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.singleton.1.6.0.schema.json
+PackageIdentifier: JaperTechnology.Windows11Zombie
+PackageVersion: 0.0.0
+PackageName: windows11-zombie
+Publisher: Japer Technology
+PublisherUrl: https://github.com/japer-technology
+PublisherSupportUrl: https://github.com/japer-technology/windows11-zombie/issues
+PackageUrl: https://github.com/japer-technology/windows11-zombie
+License: MIT
+LicenseUrl: https://github.com/japer-technology/windows11-zombie/blob/main/LICENSE
+ShortDescription: Local AI sysadmin agent for Windows 11.
+Description: |
+  A self-contained local AI sysadmin agent for Windows 11 that runs as a
+  Windows service, exposes a chat UI on 127.0.0.1, and enforces a policy
+  engine over privileged tools. See README and docs/THREAT-MODEL.md.
+Tags:
+  - sysadmin
+  - ai
+  - automation
+  - windows
+Installers:
+  - Architecture: x64
+    InstallerType: zip
+    InstallerUrl: https://github.com/japer-technology/windows11-zombie/releases/download/v0.0.0/windows11-zombie-0.0.0.zip
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+    NestedInstallerType: portable
+    NestedInstallerFiles:
+      - RelativeFilePath: scripts\Install.ps1
+    InstallerSwitches:
+      Custom: install
+ManifestType: singleton
+ManifestVersion: 1.6.0

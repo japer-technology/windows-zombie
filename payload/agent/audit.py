@@ -47,6 +47,77 @@ _sys.path.insert(0, str(Path(__file__).resolve().parent))
 import paths as _paths  # noqa: E402
 
 AUDIT_PATH = _paths.audit_log_path()
+EVENTS_PATH = AUDIT_PATH.parent / "events.log"
+
+# Critical event types that should also be mirrored to the Windows Event
+# Log (when available) so they survive deletion of logs\. Best-effort —
+# any failure is swallowed; the JSONL chain remains the source of truth.
+_EVENT_LOG_TYPES = frozenset({
+    "policy_deny",
+    "approval_required",
+    "service_start",
+    "service_stop",
+    "audit_corruption",
+    "remote_bind_attempt",
+})
+_EVENT_LOG_SOURCE = "Windows11Zombie-Chat"
+
+
+def _mirror_to_event_log(event_type: str, line: str) -> None:
+    """Best-effort mirror to the Windows Event Log. Linux/dev: no-op."""
+    if event_type not in _EVENT_LOG_TYPES:
+        return
+    try:
+        import ctypes  # noqa: PLC0415
+        from ctypes import wintypes  # noqa: PLC0415
+
+        advapi32 = ctypes.windll.advapi32  # type: ignore[attr-defined]
+        handle = advapi32.RegisterEventSourceW(None, _EVENT_LOG_SOURCE)
+        if not handle:
+            return
+        try:
+            EVENTLOG_WARNING_TYPE = 0x0002
+            msg = ctypes.c_wchar_p(line[:32000])
+            arr = (ctypes.c_wchar_p * 1)(msg)
+            advapi32.ReportEventW(
+                wintypes.HANDLE(handle),
+                wintypes.WORD(EVENTLOG_WARNING_TYPE),
+                wintypes.WORD(0),
+                wintypes.DWORD(1000),
+                None,
+                wintypes.WORD(1),
+                wintypes.DWORD(0),
+                arr,
+                None,
+            )
+        finally:
+            advapi32.DeregisterEventSource(wintypes.HANDLE(handle))
+    except Exception:  # noqa: BLE001 — best-effort sidecar
+        return
+
+
+def log_operational_event(event_type: str, **fields: Any) -> None:
+    """Append a structured non-audit operational event to ``events.log``.
+
+    Unlike :func:`log_event`, these entries are *not* part of the audit
+    hash chain — they cover routine lifecycle/telemetry (startup, config
+    reload, queue stats) that would otherwise drown the audit signal.
+    """
+    EVENTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    now = time.time()
+    entry = {
+        "ts_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
+        "pid": os.getpid(),
+        "type": event_type,
+    }
+    entry.update(redact(fields))
+    try:
+        with EVENTS_PATH.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False, separators=(",", ":")) + "\n")
+    except OSError:
+        # Operational events are best-effort. Audit must never lose
+        # data, but events.log is a sidecar.
+        return
 
 # Hard ceiling on preview length even when ``ZOMBIE_AUDIT_PREVIEW_BYTES``
 # is set higher — keeps the log bounded and matches the per-stream cap
@@ -271,6 +342,7 @@ def log_event(event_type: str, **fields: Any) -> str:
         with AUDIT_PATH.open("a", encoding="utf-8") as fh:
             fh.write(line + "\n")
         _LAST_SHA256 = hashlib.sha256(line.encode("utf-8")).hexdigest()
+    _mirror_to_event_log(event_type, line)
     return entry_id
 
 

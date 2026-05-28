@@ -650,6 +650,29 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/audit":
             self._send_json({"entries": audit_tail(50)})
             return
+        if self.path == "/metrics":
+            # Prometheus text exposition format, opt-in via ZOMBIE_METRICS=1
+            if os.environ.get("ZOMBIE_METRICS") != "1":
+                self.send_error(HTTPStatus.NOT_FOUND)
+                return
+            lines = [
+                "# HELP windows11_zombie_tool_invocations_total Total tool invocations.",
+                "# TYPE windows11_zombie_tool_invocations_total counter",
+                f"windows11_zombie_tool_invocations_total {getattr(self.app, '_metric_tool_calls', 0)}",
+                "# HELP windows11_zombie_policy_denies_total Total policy denials.",
+                "# TYPE windows11_zombie_policy_denies_total counter",
+                f"windows11_zombie_policy_denies_total {getattr(self.app, '_metric_policy_denies', 0)}",
+                "# HELP windows11_zombie_http_requests_total HTTP requests handled.",
+                "# TYPE windows11_zombie_http_requests_total counter",
+                f"windows11_zombie_http_requests_total {getattr(self.app, '_metric_http_requests', 0)}",
+            ]
+            body = ("\n".join(lines) + "\n").encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if self.path == "/api/tools":
             self._send_json({"tools": [
                 {"name": n, "classification": spec["classification"],

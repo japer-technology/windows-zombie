@@ -95,3 +95,33 @@ Useful reports include:
 - relevant policy snippets;
 - sanitized audit entries;
 - reproduction steps on Windows 11.
+
+## Coordinated disclosure timeline
+
+We follow a 90-day coordinated disclosure window:
+
+| Day | Action |
+| --- | --- |
+| 0   | Report received via GitHub Security Advisory (preferred) or `security@japer-technology.example`. Acknowledgement within **3 business days**. |
+| 7   | Triage complete; severity & affected versions confirmed. |
+| 30  | Fix candidate available; reporter invited to validate. |
+| 60  | Pre-disclosure to operators of known production deployments (if any). |
+| 90  | Public release + advisory + CVE. |
+
+Critical vulnerabilities (RCE, sandbox escape, secret exfiltration) may be
+fast-tracked.
+
+### PGP
+
+A PGP key for `security@japer-technology.example` is published at
+[https://github.com/japer-technology/.well-known/security.txt](https://github.com/japer-technology/.well-known/security.txt).
+Fingerprint will be listed in `docs/THREAT-MODEL.md` once the org key is
+provisioned.
+
+### Safe harbour
+
+Good-faith security research that abides by this policy will not be
+pursued under DMCA or CFAA equivalents. Do not access data that is not
+your own, do not perform denial-of-service testing against shared
+infrastructure, and do not retain copies of data accessed during
+research.

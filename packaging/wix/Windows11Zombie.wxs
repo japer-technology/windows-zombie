@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="windows11-zombie"
+           Manufacturer="Japer Technology"
+           Version="0.0.0.0"
+           UpgradeCode="6f7d5c8e-4a3b-4c2e-9c8e-2f1a5b6d7e8f"
+           Scope="perMachine">
+    <MajorUpgrade DowngradeErrorMessage="A newer version is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="windows11-zombie">
+        <!-- File harvest is performed at packaging time via `wix harvest`. -->
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="windows11-zombie" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+    </Feature>
+
+    <!-- Run Install.ps1 install at the end of MSI install -->
+    <CustomAction Id="RunInstall"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand='powershell.exe -NoProfile -ExecutionPolicy Bypass -File "[INSTALLFOLDER]scripts\Install.ps1" install -AssumeYes'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+    <CustomAction Id="RunUninstall"
+                  Directory="INSTALLFOLDER"
+                  ExeCommand='powershell.exe -NoProfile -ExecutionPolicy Bypass -File "[INSTALLFOLDER]scripts\Uninstall.ps1" -AssumeYes'
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="RunInstall"  After="InstallFiles" Condition="NOT Installed" />
+      <Custom Action="RunUninstall" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot;" />
+    </InstallExecuteSequence>
+  </Package>
+</Wix>
