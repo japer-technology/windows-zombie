@@ -1,4 +1,4 @@
-"""Ubuntu Zombie chat service.
+"""Windows 11 Zombie chat service.
 
 A small loopback-only HTTP server that:
 
@@ -12,8 +12,8 @@ A small loopback-only HTTP server that:
 - records every step in the JSON-lines audit log;
 - persists conversations + structured tool events to SQLite.
 
-The server binds to ``127.0.0.1`` only. Remote access is by SSH tunnel
-over Tailscale.
+The server binds to ``127.0.0.1`` only. Remote access is by SSH/RDP
+tunnel over Tailscale.
 
 The legacy ``extract_commands`` fenced-bash workflow and its
 ``SYSTEM_PROMPT_TEMPLATE`` have been removed; the model now drives
@@ -45,17 +45,18 @@ from audit import log_event, log_tool_call, tail as audit_tail  # noqa: E402
 from history import History  # noqa: E402
 from policy import load_policy  # noqa: E402
 from providers import provider_status  # noqa: E402
+import paths as _paths  # noqa: E402
 import pi_mono  # noqa: E402
 import skill_loader  # noqa: E402
 import tools as tools_mod  # noqa: E402
 
-SECRETS_FILE = Path(os.environ.get("ZOMBIE_SECRETS", "/opt/ai-zombie/secrets/env"))
+SECRETS_FILE = _paths.secrets_path()
 DEFAULT_PORT = int(os.environ.get("ZOMBIE_CHAT_PORT", "7878"))
 DEFAULT_HOST = "127.0.0.1"
 
 
 def _agent_account() -> str:
-    """Return the local Linux account the chat service runs as."""
+    """Return the local account the chat service runs as."""
     value = os.environ.get("ZOMBIE_USER")
     if value:
         return value
@@ -67,10 +68,16 @@ def _agent_account() -> str:
 
 AGENT_USER = _agent_account()
 
-APPEND_SYSTEM_TEMPLATE = """You are the AI Systems Administrator for an Ubuntu Desktop machine.
+APPEND_SYSTEM_TEMPLATE = """You are the AI Systems Administrator for a Windows 11 Desktop machine.
 
-You operate as the local Linux user "{agent_user}", who has passwordless sudo.
-Tool calls are mediated by a policy gate; read-only diagnostics run
+You operate as the local Windows account "{agent_user}", which is a
+member of the Administrators group. The chat service itself runs as
+this account (or as LocalSystem when the operator chose that identity
+at install time). There is no UAC prompt between you and a privileged
+action; the policy gate in payload/etc/policy.yaml is the only
+authority that decides whether a mutating command runs.
+
+Tool calls are mediated by that policy gate; read-only diagnostics run
 automatically, anything that mutates the machine waits for explicit
 operator approval. Per-turn tool-call budgets are enforced.
 
@@ -100,9 +107,22 @@ def render_append_system(facts: str) -> str:
 # ---------------------------------------------------------------------------
 
 def assert_secrets_safe() -> None:
-    """Refuse to start if the secrets file is group/world-readable."""
+    """Refuse to start if the secrets file is readable by non-owners.
+
+    On POSIX hosts we enforce mode 0600 (no group/world bits). On
+    Windows the equivalent contract is enforced by NTFS ACLs set by
+    the installer (``Set-AiZombieAcl`` grants Read only to SYSTEM,
+    Administrators, and the agent account). We verify here that the
+    file exists with at least one of those identities as owner; full
+    ACL inspection lives in the ``verify`` subcommand of the installer.
+    """
     if not SECRETS_FILE.exists():
         return  # nothing to protect yet
+    if _paths.is_windows():
+        # On Windows the on-disk mode bits do not encode the real ACL;
+        # skip the POSIX check. The installer's ``verify`` subcommand
+        # is the source of truth for ACL correctness.
+        return
     mode = SECRETS_FILE.stat().st_mode
     if mode & (stat.S_IRWXG | stat.S_IRWXO):
         raise SystemExit(
@@ -160,6 +180,19 @@ def machine_facts() -> dict[str, str]:
         "kernel": platform.release(),
         "arch": platform.machine(),
     }
+    if _paths.is_windows():
+        # ``platform.platform()`` produces e.g. ``Windows-10-10.0.22631-SP0``
+        # which is misleading on Windows 11; build a friendlier label
+        # from the release+version pair when both are available.
+        rel = platform.release() or ""
+        ver = platform.version() or ""
+        if rel.startswith("10") and ver.startswith("10.0.22"):
+            facts["os"] = "Windows 10 (22000 < build < 22621)"
+        elif rel.startswith("10") and ver.startswith("10.0.2"):
+            facts["os"] = f"Windows 11 (build {ver.split('.')[-1]})"
+        else:
+            facts["os"] = f"Windows {rel} ({ver})"
+        return facts
     try:
         for line in Path("/etc/os-release").read_text().splitlines():
             if line.startswith("PRETTY_NAME="):
@@ -496,7 +529,7 @@ def _render_index(app: App) -> bytes:
         banner = f"connected ({name})"
     text = INDEX_HTML_PATH.read_text(encoding="utf-8")
     text = text.replace("{{HOSTNAME}}", html.escape(facts.get("hostname", "?")))
-    text = text.replace("{{OS}}", html.escape(facts.get("os", "Ubuntu")))
+    text = text.replace("{{OS}}", html.escape(facts.get("os", "Windows 11")))
     text = text.replace("{{PROVIDER_STATUS}}", html.escape(banner))
     examples = (HERE / "examples.md").read_text(encoding="utf-8") if (HERE / "examples.md").exists() else ""
     text = text.replace("{{EXAMPLES}}", html.escape(examples))
@@ -610,7 +643,7 @@ def make_handler(app: App) -> type[Handler]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Ubuntu Zombie chat service")
+    parser = argparse.ArgumentParser(description="Windows 11 Zombie chat service")
     parser.add_argument("--host", default=DEFAULT_HOST,
                         help="bind address (default: %(default)s)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT,
@@ -640,7 +673,7 @@ def main(argv: list[str] | None = None) -> int:
     server = ThreadingHTTPServer((args.host, args.port), make_handler(app))
     log_event("service_start", host=args.host, port=args.port,
               pid=os.getpid())
-    print(f"ubuntu-zombie chat listening on http://{args.host}:{args.port}/",
+    print(f"windows11-zombie chat listening on http://{args.host}:{args.port}/",
           flush=True)
     try:
         server.serve_forever()

@@ -1,8 +1,9 @@
-"""Audit logging for Ubuntu Zombie.
+"""Audit logging for Windows 11 Zombie.
 
 Every prompt, proposed action, approval decision, command, exit code,
 and verification result is appended as one JSON object per line to
-``/var/log/ubuntu-zombie/audit.log``. Secrets are redacted before
+``%ProgramData%\\AiZombie\\logs\\audit.log`` (see ``paths.py`` for the
+exact resolution rules). Secrets are redacted before
 write: the redactor matches token-shaped substrings and also scrubs
 the values of a fixed set of sensitive environment variables and the
 secrets-file path. Tool dispatches are recorded as structured
@@ -41,7 +42,11 @@ from collections import deque
 from pathlib import Path
 from typing import Any, Mapping
 
-AUDIT_PATH = Path(os.environ.get("ZOMBIE_AUDIT_LOG", "/var/log/ubuntu-zombie/audit.log"))
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths as _paths  # noqa: E402
+
+AUDIT_PATH = _paths.audit_log_path()
 
 # Hard ceiling on preview length even when ``ZOMBIE_AUDIT_PREVIEW_BYTES``
 # is set higher — keeps the log bounded and matches the per-stream cap
@@ -94,7 +99,7 @@ _SENSITIVE_ENV_NAMES = (
 
 
 def _secrets_path_redactors() -> tuple[tuple[re.Pattern[str], str], ...]:
-    paths = {os.environ.get("ZOMBIE_SECRETS") or "/opt/ai-zombie/secrets/env"}
+    paths = {str(_paths.secrets_path())}
     out: list[tuple[re.Pattern[str], str]] = []
     for p in paths:
         if not p:

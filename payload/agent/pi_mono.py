@@ -41,11 +41,13 @@ from typing import Any, Callable, Iterable
 
 HERE = Path(__file__).resolve().parent
 
+import sys as _sys
+_sys.path.insert(0, str(HERE))
+import paths as _paths  # noqa: E402
+
 DEFAULT_BRIDGE = HERE / "pi-mono-bridge.mjs"
-DEFAULT_LOG_DIR = Path(os.environ.get(
-    "ZOMBIE_PI_MONO_LOG_DIR", "/opt/ai-zombie/state/logs"))
-DEFAULT_SETTINGS_PATH = Path(os.environ.get(
-    "ZOMBIE_PI_MONO_SETTINGS", "/opt/ai-zombie/pi/settings.json"))
+DEFAULT_LOG_DIR = _paths.pi_mono_log_dir()
+DEFAULT_SETTINGS_PATH = _paths.pi_mono_settings_path()
 
 
 class BridgeError(RuntimeError):

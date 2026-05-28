@@ -1,14 +1,29 @@
 """Command execution with timeout, stdout/err/exit capture, and a hook
-for proposing follow-up verification checks."""
+for proposing follow-up verification checks.
+
+On Windows the command string is handed to ``cmd.exe /d /s /c`` (no
+profile, no auto-extensions, no command-line preprocessing) so simple
+chains like ``a && b`` and redirections behave the way the agent's
+prompts assume. PowerShell-specific commands embed an explicit
+``powershell.exe -NoProfile -Command "..."`` inside the string —
+``cmd.exe`` is the *shell*, ``powershell.exe`` is the *interpreter*.
+
+On POSIX hosts the command is handed to ``bash -c`` (not ``-lc``;
+sourcing the login profile leaks MOTD and slows every call by 50–200
+ms, see FIX-3-16).
+"""
 from __future__ import annotations
 
 import os
 import shlex
 import subprocess
+import sys
 import time
 from dataclasses import dataclass
 
 DEFAULT_TIMEOUT = int(os.environ.get("ZOMBIE_COMMAND_TIMEOUT", "300"))
+
+_IS_WINDOWS = sys.platform.startswith("win")
 
 
 @dataclass
@@ -31,9 +46,36 @@ def _propose_follow_ups(command: str, exit_code: int) -> list[str]:
         # (e.g. ``apt install "foo``). _propose_follow_ups must never
         # raise — fall back to a naive whitespace split so the audit
         # event still records something useful.
-        tokens = shlex.split(command, posix=True) if command.strip() else []
+        tokens = shlex.split(command, posix=not _IS_WINDOWS) if command.strip() else []
     except ValueError:
         tokens = command.split() if command.strip() else []
+
+    head_lc = head.lower().rstrip(".exe")
+
+    if _IS_WINDOWS:
+        if head_lc == "winget" and len(tokens) > 1 and tokens[1].lower() in {"install", "uninstall", "upgrade"}:
+            for arg in tokens[2:]:
+                if arg.startswith("-") or arg.startswith("/") or "=" in arg:
+                    continue
+                follow_ups.append(f"winget list --id {shlex.quote(arg)} --disable-interactivity")
+        elif head_lc in {"start-service", "stop-service", "restart-service",
+                         "set-service", "sc"} and len(tokens) > 1:
+            unit = tokens[-1]
+            follow_ups.append(
+                f'powershell.exe -NoProfile -Command "Get-Service -Name {shlex.quote(unit)}"'
+            )
+        elif head_lc == "new-netfirewallrule" or "netfirewallrule" in head_lc:
+            follow_ups.append(
+                'powershell.exe -NoProfile -Command "Get-NetFirewallProfile | Format-Table Name,Enabled,DefaultInboundAction"'
+            )
+        elif "tailscale" in head_lc:
+            follow_ups.append('"C:\\Program Files\\Tailscale\\tailscale.exe" status')
+        if exit_code != 0 and "get-winevent" not in command.lower():
+            follow_ups.append(
+                'powershell.exe -NoProfile -Command '
+                '"Get-WinEvent -LogName Application -MaxEvents 50 | Format-Table TimeCreated,LevelDisplayName,Message -Wrap"'
+            )
+        return follow_ups
 
     if head in {"apt", "apt-get"} and len(tokens) > 1 and tokens[1] in {"install", "remove", "purge"}:
         for pkg in tokens[2:]:
@@ -60,24 +102,34 @@ def _propose_follow_ups(command: str, exit_code: int) -> list[str]:
 
 def run(command: str, *, timeout: int = DEFAULT_TIMEOUT, cwd: str | None = None,
         env: dict[str, str] | None = None) -> CommandResult:
-    """Run ``command`` through ``bash -c`` so shell features work.
+    """Run ``command`` through the platform shell so common shell
+    features (pipelines, redirections, ``&&``) work.
 
     The chat service is itself running as the local agent account
     (``zombie`` by default; configurable at install time); commands
-    inherit that identity. Privileged commands must include ``sudo``
-    explicitly and are routed through the policy gate before this
-    function is called.
+    inherit that identity. Privileged Linux invocations must include
+    ``sudo``; on Windows the agent account itself is an Administrator
+    (or the service runs as LocalSystem), and the policy gate in
+    ``policy.py`` is the only authority that approves a mutating
+    command before this function is called.
     """
+    if _IS_WINDOWS:
+        # ``cmd.exe /d`` skips AutoRun, ``/s`` simplifies quoting, ``/c``
+        # runs the string and exits.
+        argv = [os.environ.get("ComSpec", "cmd.exe"), "/d", "/s", "/c", command]
+    else:
+        # FIX-3-16: use ``-c`` not ``-lc``. A login shell sources
+        # /etc/profile, profile.d/*, and ~/.bash_profile for every
+        # command — adds 50-200 ms, can change PATH unexpectedly,
+        # and leaks MOTD lines into stderr (and thus the
+        # assistant's context). The environment is already
+        # constructed explicitly below.
+        argv = ["bash", "-c", command]
+
     start = time.monotonic()
     try:
-        completed = subprocess.run(  # noqa: S602 - the policy gate vetted this
-            # FIX-3-16: use ``-c`` not ``-lc``. A login shell sources
-            # /etc/profile, profile.d/*, and ~/.bash_profile for every
-            # command — adds 50-200 ms, can change PATH unexpectedly,
-            # and leaks MOTD lines into stderr (and thus the
-            # assistant's context). The environment is already
-            # constructed explicitly below.
-            ["bash", "-c", command],
+        completed = subprocess.run(  # noqa: S603 - the policy gate vetted this
+            argv,
             capture_output=True,
             text=True,
             timeout=timeout,

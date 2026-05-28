@@ -14,9 +14,9 @@ trigger marker, for example::
 
 The loader scans two directories:
 
-* ``/opt/ai-zombie/skills/``        — root-owned, ships with the package.
-* ``/etc/ubuntu-zombie/skills.d/``  — operator-extensible, same
-  mode/owner contract as ``/etc/ubuntu-zombie/policy.yaml``.
+* the install root's ``skills\\`` directory — ships with the package.
+* the config root's ``skills.d\\`` directory — operator-extensible, same
+  ACL contract as ``policy.yaml``.
 
 When a chat turn starts, :func:`select_skills` returns the skills whose
 trigger words appear in the last *N* user messages.
@@ -34,9 +34,13 @@ from __future__ import annotations
 
 import os
 import re
+import sys as _sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
+
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths as _paths  # noqa: E402
 
 
 # Default trigger-window: how many of the most recent user messages to
@@ -83,8 +87,8 @@ def default_skill_dirs() -> list[Path]:
             chunk = chunk.strip()
             if chunk:
                 dirs.append(Path(chunk))
-    dirs.append(Path("/opt/ai-zombie/skills"))
-    dirs.append(Path("/etc/ubuntu-zombie/skills.d"))
+    dirs.append(_paths.builtin_skills_dir())
+    dirs.append(_paths.operator_skills_dir())
     return dirs
 
 
@@ -109,7 +113,7 @@ def load_skills(dirs: Iterable[Path] | None = None) -> list[Skill]:
     """Discover all ``*.md`` skills under ``dirs``.
 
     The earliest directory wins on name collision so an operator file
-    in ``/etc/ubuntu-zombie/skills.d/`` cannot quietly shadow the
+    in the operator skills.d/ directory cannot quietly shadow the
     shipped skill of the same name (and vice versa, depending on
     ordering). Files whose stem is not a valid skill name (per
     ``_NAME_RE``) are skipped — the same constraint ``skill.load``
