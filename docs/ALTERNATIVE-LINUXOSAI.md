@@ -8,13 +8,13 @@ shape as [`ALTERNATIVE-MISSY.md`](ALTERNATIVE-MISSY.md),
 [`ALTERNATIVE-SYSADMINAGENTS.md`](ALTERNATIVE-SYSADMINAGENTS.md).
 
 It reads [`ANVEAI/linuxos-ai`](https://github.com/ANVEAI/linuxos-ai)
-through the Ubuntu Zombie filter defined in [`VISION.md`](VISION.md):
-*Ubuntu LTS + a real local Unix account + a private Tailscale interface
+through the Windows 11 Zombie filter defined in [`VISION.md`](VISION.md):
+*Windows 11 22H2+ Pro/Enterprise + a local Administrators account + a private Tailscale interface
 + an LLM under human approval, on a single operator-owned machine.*
 
-LinuxOS-AI matters for Ubuntu Zombie for an unusual reason. Of every
+LinuxOS-AI matters for Windows 11 Zombie for an unusual reason. Of every
 project in the catalogue, it is the only one whose **framing** is the
-mirror image of Ubuntu Zombie's — *"the first step towards an AI-native
+mirror image of Windows 11 Zombie's — *"the first step towards an AI-native
 Linux OS"*, with a four-phase roadmap that ends at "complete AI-native
 OS" and "autonomous system management". It is also, on inspection, the
 project with the **smallest gap** between its marketing surface and its
@@ -23,7 +23,7 @@ banner, dumps a few `top` / `df` / `vm_stat` lines, injects a system
 prompt into `npx @google/gemini-cli`, and hands the user a chat.
 
 That gap — *the distance between the elevator pitch and the executor* —
-is the single most useful thing Ubuntu Zombie can learn from this
+is the single most useful thing Windows 11 Zombie can learn from this
 project. SysKnife teaches Zombie what to *build*. Missy teaches Zombie
 what to *defend against*. LinuxOS-AI teaches Zombie what to *not say
 out loud*, what to *not paper over*, and where the line between a
@@ -61,20 +61,20 @@ roadmap (AI sysadmin → AI desktop environment → AI kernel integration
 project owns is "whatever the invoking user can do, plus `sudo` when
 the LLM is told to use it".
 
-Ubuntu Zombie is the opposite shape on most of those axes. The
+Windows 11 Zombie is the opposite shape on most of those axes. The
 interesting question is which *ideas* survive translation, which
 *claims* must not be repeated, and which *operational details* are
-warning signs Ubuntu Zombie should design against from day one.
+warning signs Windows 11 Zombie should design against from day one.
 
 ## The axis-by-axis comparison
 
-| Axis                          | LinuxOS-AI                                                                                                | Ubuntu Zombie                                                                                                  | Implication                                                                                                                                                |
+| Axis                          | LinuxOS-AI                                                                                                | Windows 11 Zombie                                                                                                  | Implication                                                                                                                                                |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framing                       | "First step towards an AI-native Linux OS"; AI owns the machine                                           | Ubuntu LTS with a private, root-capable administrator account; the *operator* owns the machine                 | Same neighbourhood, opposite trust direction. Zombie must keep saying "the operator owns the box; the AI is a tool with hands."                            |
-| Host target                   | Linux *or* macOS, any distro; no LTS commitment                                                            | Supported Ubuntu Desktop **LTS** only                                                                          | LinuxOS-AI pays for cross-platform reach with the impossibility of any concrete safety primitive. Zombie should keep cashing the LTS-only simplification.  |
-| Identity model                | None — `aios` runs as whoever invoked it; no dedicated account, no UID, no `getent passwd` answer         | Dedicated local `zombie` Unix account with passwordless `sudo`                                                 | "The administrator is a user you can name" is the load-bearing idea here, and LinuxOS-AI quietly skips it. Zombie's single biggest mental-model win.       |
+| Framing                       | "First step towards an AI-native Linux OS"; AI owns the machine                                           | Windows 11 with a private, administrator-capable local account; the *operator* owns the machine                 | Same neighbourhood, opposite trust direction. Zombie must keep saying "the operator owns the box; the AI is a tool with hands."                            |
+| Host target                   | Linux *or* macOS, any distro; no LTS commitment                                                            | Supported Windows 11 22H2+ Pro/Enterprise only                                                                          | LinuxOS-AI pays for cross-platform reach with the impossibility of any concrete safety primitive. Zombie should keep cashing the single-platform simplification.  |
+| Identity model                | None — `aios` runs as whoever invoked it; no dedicated account, no UID, no `getent passwd` answer         | Dedicated local `zombie` Administrators account plus policy-gated approval                                                 | "The administrator is a user you can name" is the load-bearing idea here, and LinuxOS-AI quietly skips it. Zombie's single biggest mental-model win.       |
 | Privilege model               | Implicit: the LLM is given a shell and may call `sudo` if the operator's session has it                   | Explicit: a named account whose only purpose is to mediate privilege via typed actions                         | Privilege without an identity is privilege without an audit subject. Zombie's audit log gets to say *which user* did a thing; LinuxOS-AI's cannot.         |
-| Distribution shape            | `git clone` + `npm install` + `npm run build`; a bash wrapper plus a bundled Gemini CLI                    | A transparent bash installer that creates a system account, configures `sudo`, joins Tailscale                  | LinuxOS-AI is an *application* the operator runs; Zombie is a *system change*. Different blast radius, different installer transcript bar.                  |
+| Distribution shape            | `git clone` + `npm install` + `npm run build`; a bash wrapper plus a bundled Gemini CLI                    | A transparent PowerShell installer that creates a local Administrators account and configures Tailscale                  | LinuxOS-AI is an *application* the operator runs; Zombie is a *system change*. Different blast radius, different installer transcript bar.                  |
 | Interface                     | Terminal session on the local box, started by the operator                                                | Private chat surface bound to `127.0.0.1`, reachable only over the operator's Tailscale tailnet                | LinuxOS-AI has no remote story at all. Zombie's tailnet posture is a feature, not an accident, and not something LinuxOS-AI argues against — it just lacks. |
 | Inference                     | Google Gemini only; `GEMINI_API_KEY` hard-required; no provider abstraction in the wrapper                | Cloud LLM in MVP, local models on roadmap, provider-swappable                                                  | Single-vendor lock is the trade-off LinuxOS-AI accepts in exchange for Gemini CLI's tool surface. Zombie should not import that lock.                       |
 | Agent topology                | One LLM, one chat, one prompt; tools come from Gemini CLI's built-in surface                              | One agent, one operator, one machine                                                                           | The single-agent shape is right; the rest of the architecture is what makes that shape safe. LinuxOS-AI ships the shape and skips the rest.                 |
@@ -92,8 +92,8 @@ warning signs Ubuntu Zombie should design against from day one.
 
 The whole point of reading every project in the catalogue is to find
 the primitive that is sharper, smaller, or more honest than what
-Ubuntu Zombie has today and to copy it. LinuxOS-AI has exactly one
-such primitive, and it is one Ubuntu Zombie already half-implements.
+Windows 11 Zombie has today and to copy it. LinuxOS-AI has exactly one
+such primitive, and it is one Windows 11 Zombie already half-implements.
 
 ### A single named, in-OS administrator identity
 
@@ -106,14 +106,14 @@ feature in your terminal".
 
 That mental model is exactly right. It is also the move that
 [`ALTERNATIVES-LESSONS.md`](ALTERNATIVES-LESSONS.md) already credits
-to LinuxOS-AI under "lessons to borrow", and the move Ubuntu Zombie
-makes literal: the administrator is a **real Unix account** named
-`zombie`, that `getent passwd zombie` answers, that owns its config,
-its socket, its audit log, and its `sudoers.d/` snippet, and that an
+to LinuxOS-AI under "lessons to borrow", and the move Windows 11 Zombie
+makes literal: the administrator is a **real local Windows account** named
+`zombie`, that Windows local-user APIs can resolve, that has ACLs on
+its config, secrets, and audit log, and that an
 operator can point at and say *"that user did the thing"*.
 
 LinuxOS-AI gets the *naming* right and stops there: the role exists in
-the prompt and the docs but not in `/etc/passwd`. Ubuntu Zombie gets
+the prompt and the docs but not in the OS account database. Windows 11 Zombie gets
 to take the framing one architectural layer deeper and make the role
 a kernel-recognised identity. The lesson is:
 
@@ -121,7 +121,7 @@ a kernel-recognised identity. The lesson is:
   "an AI feature in your terminal", because it is something the
   operator can talk *about* rather than just *to*.
 - The naming is not enough. The identity has to be **mechanical** —
-  a UID, a home directory, a `sudoers.d/` rule, an account the
+  a local SID, a profile directory, Administrators membership, an account the
   operator could disable with `usermod -L zombie` if it ever
   misbehaves.
 - The audit log is the *receipt* of that identity. Every entry should
@@ -132,12 +132,12 @@ a kernel-recognised identity. The lesson is:
 Everything else useful about LinuxOS-AI either belongs to Gemini CLI
 (and is therefore a lesson about Gemini CLI rather than about
 LinuxOS-AI), or is a negative example. The rest of this document is
-about those negative examples — what they teach, and how Ubuntu Zombie
+about those negative examples — what they teach, and how Windows 11 Zombie
 should refuse them.
 
 ## Anti-patterns to refuse explicitly
 
-These are the LinuxOS-AI choices Ubuntu Zombie should not just decline
+These are the LinuxOS-AI choices Windows 11 Zombie should not just decline
 to copy but should design *against*. Each one is a specific failure
 mode the Zombie architecture has to prevent by construction.
 
@@ -157,7 +157,7 @@ under prompt injection, or skip them entirely when `--yolo` is set.
 
 This is the failure mode the typed-action layer described in
 [`ALTERNATIVE-SYSKNIFE.md`](ALTERNATIVE-SYSKNIFE.md) exists to
-prevent. Ubuntu Zombie's rule must be the inverse: **safety is not
+prevent. Windows 11 Zombie's rule must be the inverse: **safety is not
 something the model is asked to do; it is something the executor
 enforces on the model's output, before the model's output reaches
 anything that can change the system.** Risk classification is a
@@ -175,7 +175,7 @@ gate is the central anti-pattern of the entire space. It collapses
 confirm, audit log integrity — into something that can be bypassed by
 adding one flag to a shell invocation.
 
-Ubuntu Zombie's rule, already foreshadowed by SysKnife: **auto-approve
+Windows 11 Zombie's rule, already foreshadowed by SysKnife: **auto-approve
 is bounded by the risk enum, not by a single flag.** A reasonable
 operator can opt into auto-approve for `Low` (read-only diagnostics);
 they can deliberately opt into auto-approve for `Medium` (mutating-
@@ -190,7 +190,7 @@ option. It is off by default, and the README never makes it a
 condition of safe use. The implicit posture is "run me without a
 sandbox; the prompt will keep things sensible".
 
-Ubuntu Zombie should not import that posture even by accident. Zombie
+Windows 11 Zombie should not import that posture even by accident. Zombie
 does not, in the MVP, sandbox individual actions inside a container —
 it does something stronger: it executes only typed actions through a
 small privileged executor that the operator has explicitly approved.
@@ -205,7 +205,7 @@ key in clear text to `~/.bashrc` or `~/.zshrc`. `QUICKSTART.md` then
 echoes a real-looking partial key (`AIzaSyCR1FJ7KN26986a...`) into the
 documentation as part of the "you're ready to go!" copy.
 
-Both are concrete failure modes Ubuntu Zombie should design against:
+Both are concrete failure modes Windows 11 Zombie should design against:
 
 - **Secrets never live in shell rc files.** They live in mode-`0600`
   files owned by the `zombie` account, in a documented location under
@@ -215,7 +215,7 @@ Both are concrete failure modes Ubuntu Zombie should design against:
   shell completion — will read.
 - **Secrets never appear in documentation, even partially.** A
   documented partial key teaches the wrong habit and trains operators
-  to share screenshots with key fragments visible. Ubuntu Zombie's
+  to share screenshots with key fragments visible. Windows 11 Zombie's
   docs should use a fully synthetic, obviously fake placeholder
   (`TS_AUTHKEY_REPLACE_ME`, `OPENAI_API_KEY_REPLACE_ME`).
 - **The installer's transcript is the operator's contract.** "Wrote
@@ -232,8 +232,8 @@ neither case is the AI a distinct subject; there is no way for the
 audit log on the underlying system (`/var/log/auth.log`, `journalctl
 _UID=…`) to say "the AI did this and the human did that".
 
-Ubuntu Zombie's `zombie` account is exactly the fix. Every action the
-AI proposes runs as `zombie` (under `sudo` via the executor when
+Windows 11 Zombie's `zombie` account is exactly the fix. Every action the
+AI proposes runs as `zombie` (through the policy-gated executor when
 elevation is required), and the underlying system's audit primitives
 — `auth.log`, `journalctl`, `last`, `who`, `getent passwd zombie` —
 naturally separate AI-originated activity from human-originated
@@ -255,11 +255,11 @@ optimised resource allocation*, *predictive system maintenance*,
 "voice-controlled everything". None of these are wrong to dream
 about; all of them are dangerous to promise.
 
-The lesson for Ubuntu Zombie is not "have a smaller roadmap". It is:
+The lesson for Windows 11 Zombie is not "have a smaller roadmap". It is:
 **ship a roadmap whose phases are operationally distinguishable from
 each other and whose later phases are conditional on the earlier ones
 working in the field.** [`VISION.md`](VISION.md) already does this:
-the MVP is "private root-capable account on Ubuntu LTS over
+the MVP is "private administrator-capable account on Windows 11 over
 Tailscale, with approval and audit", and later phases (local models,
 fleet-of-one expanded to fleet-of-few, richer action catalogues) are
 *concrete features* rather than *paradigm shifts*. The discipline is
@@ -280,7 +280,7 @@ hopes it would print*, and which are *transcribed from a single
 lucky run*. The README is a marketing document wearing a screenshot's
 clothing.
 
-Ubuntu Zombie's documents — including this one — should be readable
+Windows 11 Zombie's documents — including this one — should be readable
 as falsifiable claims. When [`VISION.md`](VISION.md) says "Tailscale-
 only inbound", the install transcript and the firewall state on a
 freshly installed box should make that statement true and checkable.
@@ -299,7 +299,7 @@ FileAgent / DiagnosticAgent) does not correspond to any code in the
 repository — there are no `*.ts` files under those names. The
 "agents" exist only in the prompt the bash wrapper injects.
 
-This is a useful negative example for Ubuntu Zombie's own
+This is a useful negative example for Windows 11 Zombie's own
 documentation. Architecture diagrams in the Zombie docs should
 correspond to actual processes, sockets, files, and systemd units; if
 a box on the diagram is "the LLM treats this as a role internally",
@@ -309,7 +309,7 @@ on the diagram and find it on disk.
 ## Operational details worth designing against
 
 A handful of small, concrete LinuxOS-AI choices are good enough as
-*warnings* that Ubuntu Zombie should write its own rule for each one
+*warnings* that Windows 11 Zombie should write its own rule for each one
 into its installer and its docs.
 
 - **The install transcript should never end with "AI features will be
@@ -317,7 +317,7 @@ into its installer and its docs.
   Gemini key and tells the operator they can set it later. The
   resulting system is half-installed: the bash wrapper runs, the
   fallback `case` statement runs, but the headline feature does not.
-  Ubuntu Zombie's installer should be all-or-nothing for its safety
+  Windows 11 Zombie's installer should be all-or-nothing for its safety
   primitives: if `tailscale` is not present, if the `zombie` account
   cannot be created, if the audit-signing key cannot be written, the
   installer aborts and rolls back rather than producing a half-state.
@@ -325,13 +325,12 @@ into its installer and its docs.
   LinuxOS-AI's `check_api_availability` runs a 10-second test prompt
   against Gemini and uses the result to decide whether to enter
   "enhanced mode" or "local mode". This is fine as ergonomics and
-  useless as safety: it tests reachability, not policy. Ubuntu
-  Zombie's analogous check should test policy state — *the executor
+  useless as safety: it tests reachability, not policy. Windows 11 Zombie's analogous check should test policy state — *the executor
   is reachable, the audit log opens for append, the signing key
   verifies* — not just *the provider answered*.
 - **The chat surface should not be both the planner and the executor.**
   In LinuxOS-AI the chat surface (Gemini CLI's REPL) is also the
-  thing that runs shell. There is no executor. Ubuntu Zombie's MVP
+  thing that runs shell. There is no executor. Windows 11 Zombie's MVP
   may collapse the three roles (planner, approval gate, executor) into
   one binary, but the *interfaces* between them must be real, and the
   chat surface must never call `execve` directly — it must hand a
@@ -339,7 +338,7 @@ into its installer and its docs.
 - **A fallback mode that loses safety is a worse state, not a better
   one.** When LinuxOS-AI's API is down, the fallback mode is *also*
   the mode without approval, without audit, and without the LLM that
-  was supposed to mediate the action. Ubuntu Zombie's degraded modes
+  was supposed to mediate the action. Windows 11 Zombie's degraded modes
   should preserve the safety primitives even when they cost
   functionality: if the LLM is unreachable, the executor still
   refuses raw shell, the audit log still appends, the approval gate
@@ -349,14 +348,14 @@ into its installer and its docs.
   `free`, `ifconfig` vs `ip addr`, `launchctl` vs `systemctl` inside
   the same `case` statement. The branches are shallow and the
   resulting system administrator has roughly half the capabilities on
-  either platform. Ubuntu Zombie's "Ubuntu LTS only" stance is the
+  either platform. Windows 11 Zombie's "Windows 11 only" stance is the
   honest version of this: pick one substrate, rely on it, and let the
   cross-platform story start when the single-platform story is
   load-bearing.
 - **A workspace whose `packages/mcp-servers/` is empty is documenting
   an aspiration, not a feature.** LinuxOS-AI's `packages/`
   directory contains `cli`, `core`, `ui`, and `mcp-servers` — and
-  `mcp-servers` is an empty directory. Ubuntu Zombie should keep the
+  `mcp-servers` is an empty directory. Windows 11 Zombie should keep the
   rule that an artifact in the tree (a directory, a service file, a
   CLI subcommand) is something that *does* something. Empty
   scaffolding is a category of lie even when it is well-intentioned.
@@ -364,18 +363,17 @@ into its installer and its docs.
 ## Where LinuxOS-AI is accidentally honest
 
 It is worth giving LinuxOS-AI credit where the accidents work in its
-favour. Two things the project does are useful inputs for Ubuntu
-Zombie, even though neither is presented as a design contribution.
+favour. Two things the project does are useful inputs for Windows 11 Zombie, even though neither is presented as a design contribution.
 
 - **The bash wrapper is short and readable.** A 430-line bash script
   is easy to audit end-to-end. Whatever else is true of the project,
   the operator can read `aios` in twenty minutes and know exactly what
-  it does. Ubuntu Zombie's executor and installer should hit the same
+  it does. Windows 11 Zombie's executor and installer should hit the same
   bar: small enough that a third party can read them in one sitting
   and predict their behaviour without running them.
 - **The chat-first ergonomics are right.** The thing the operator
   actually does — "open a chat with the administrator and describe
-  the problem in English" — is the same thing Ubuntu Zombie's chat
+  the problem in English" — is the same thing Windows 11 Zombie's chat
   surface is designed to enable. The disagreement is not about
   ergonomics; it is about everything else.
 
@@ -384,7 +382,7 @@ Zombie, even though neither is presented as a design contribution.
 If only ten lessons survive from this whole document, in order:
 
 1. **A named, in-OS administrator identity is the right mental model
-   — and it has to be mechanical (a real Unix account), not just
+   — and it has to be mechanical (a real local Windows account), not just
    rhetorical (a name in a system prompt).**
 2. **Safety must be enforced by the executor on the model's output,
    not asked of the model in its prompt.** Risk class, approval, and
@@ -419,11 +417,9 @@ If only ten lessons survive from this whole document, in order:
     working in the field; they are not stages of a revolution.
 
 Everything LinuxOS-AI does *well* — the chat-first ergonomics, the
-named-administrator framing, the readability of the wrapper — Ubuntu
-Zombie already does, or already plans to do, in a load-bearing form.
+named-administrator framing, the readability of the wrapper — Windows 11 Zombie already does, or already plans to do, in a load-bearing form.
 Everything LinuxOS-AI does *badly* is a worked example of a specific
 failure mode the Zombie architecture has to prevent by construction.
-Read in that spirit, the project's most useful contribution to Ubuntu
-Zombie is the precision with which it shows where the line lives
+Read in that spirit, the project's most useful contribution to Windows 11 Zombie is the precision with which it shows where the line lives
 between a marketing surface and an executor — and which side of that
-line Ubuntu Zombie has to stay on.
+line Windows 11 Zombie has to stay on.

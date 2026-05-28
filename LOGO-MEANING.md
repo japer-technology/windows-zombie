@@ -1,110 +1,39 @@
-# The Meaning of the Ubuntu Zombie Logo
+# Logo meaning
 
-![Ubuntu Zombie Logo](LOGO.png)
+The Windows 11 Zombie logo keeps the skull-and-robot idea from the earlier
+project while moving the visual language to a Windows 11 desktop.
 
-The Ubuntu Zombie logo is a single head split vertically down the
-middle. The left half is a smooth white robot wearing black
-over-ear headphones with a boom microphone. The right half is a
-weathered, cracked human skull. Both halves share the same eye line,
-the same jaw line, and the same glowing purple eye, so the two
-pieces read as one face rather than two pasted together.
+## Core symbols
 
-Every element on the logo maps to something the project actually
-promises in [`README.md`](README.md), [`docs/VISION.md`](docs/VISION.md),
-and [`SECURITY.md`](SECURITY.md). Nothing here is decoration.
+- **Skull:** the machine has an always-on administrative helper. That is
+  powerful and intentionally a little unsettling, so the logo should never
+  hide the risk.
+- **Robot/AI face:** the service is conversational and tool-using rather
+  than a silent background script.
+- **Four-pane window glyph:** the Windows 11 environment is the product
+  surface: Services, Scheduled Tasks, Defender Firewall, RDP, WinGet, and
+  `C:\ProgramData\AiZombie\`.
+- **Windows blue:** blue gradients replace the former Linux colour story.
+  They signal the Windows desktop target without borrowing Microsoft
+  marks directly.
 
-## The split face: one machine, two identities
+## Intended message
 
-The vertical split is the project in one image. A machine that runs
-Ubuntu Zombie is still an ordinary Ubuntu Desktop PC for the human
-in front of it (the human, organic side), and it is simultaneously
-the home of a root-capable AI Systems Administrator that lives
-inside it (the machine, manufactured side). The two halves are
-fused into one head because they are the same computer, the same
-disk, the same network identity — not a separate appliance and not
-a hosted service.
+Windows 11 Zombie is not a generic chatbot. It is an operator-controlled
+AI Systems Administrator installed locally on a Windows PC. The logo
+therefore balances friendly automation with a clear warning: the agent can
+observe, diagnose, and propose privileged changes, but policy and approval
+must stay in charge.
 
-The seam is deliberately clean and centered. The AI does not
-"take over" the machine and the human does not pretend the AI
-isn't there. They share one face, one jaw, one eye line.
+## Visual guidance
 
-## The robot half (left): the AI Systems Administrator
+Use a restrained Windows 11 idiom:
 
-- **Smooth white shell.** The administrator is a clean, well-defined
-  software surface: a named Linux user (`zombie` by default,
-  renameable via `ZOMBIE_USER`), a policy gate, an audit log, a chat
-  UI on `127.0.0.1:7878`. It is engineered, inspectable, and replaceable.
-- **Headphones and boom microphone.** The administrator only acts
-  when it is spoken to. You open a private chat, you ask the
-  machine to do something, it proposes, you approve, it acts.
-  It is a listener with a mouth, not an autonomous agent that
-  decides what the PC is for.
-- **Curved, calm "eye."** The robot eye is drawn as a gentle upward
-  arc — a content, attentive expression. The administrator is meant
-  to feel like a helpful operator on call, not a threatening force.
+- cool blue panes or glow accents;
+- square/rounded window geometry;
+- a skull or deadpan robot expression;
+- no official Microsoft logos, product artwork, or trademarked lockups;
+- no horror imagery that implies malware or stealth.
 
-## The skull half (right): the zombie, and what "zombie" means here
-
-- **Human skull.** This is an Ubuntu *Zombie*, not an Ubuntu *Robot*.
-  The machine was already a real PC with a real owner before the
-  installer ran. The skull says: there is a person's computer
-  underneath this; the AI is reanimating capability that already
-  belonged to the owner, not summoning a new creature.
-- **Cracks across the bone.** Real machines are imperfect — drivers
-  drift, packages break, configs rot. The cracks acknowledge that
-  the administrator's actual job is diagnosing, explaining,
-  repairing, and operating a messy real system, including the
-  `doctor` and `repair` subcommands.
-- **Bared teeth.** The skull is not smiling and not snarling. It is
-  exposed. Ubuntu Zombie is honest about the fact that it grants a
-  root-capable identity on your machine; `SECURITY.md` exists for
-  exactly this reason. The teeth are a reminder, not a threat.
-
-## The shared purple eye: the operator's kill switch
-
-Both halves share a single style of glowing purple eye. The robot
-side shows it as a calm curve; the skull side shows it as a bright,
-focused point of light in the socket. The shared color and shared
-glow are the most important element in the logo:
-
-- **One light, one will.** The same operator owns both halves. The
-  SSH private key, the LLM API key, the Tailscale account, the
-  policy file, and the kill switch all belong to the human in front
-  of the machine. The AI does not have its own independent eye.
-- **The light is on because the operator turned it on.** When the
-  operator runs `sudo ./scripts/install.sh uninstall`, the light
-  goes out on both sides at once. Nothing in the logo glows without
-  consent.
-- **Purple, not red.** Red would read as hostile; blue would read
-  as a generic tech mascot. Purple sits between the white plastic
-  of the robot and the bone of the skull and belongs to neither —
-  it is the operator's color, layered on top of both identities.
-
-## The headphones, again: the network boundary
-
-The headphones are only on the robot side, and they are wired. This
-mirrors the network posture described in `README.md` and
-`SECURITY.md`: the administrator listens on a private channel
-(local chat, or SSH tunneled over a private Tailscale tailnet),
-not on the open internet. There is no public inbound exposure;
-the "ears" are cupped and cabled, not antennas broadcasting in
-every direction.
-
-## What the logo is *not* saying
-
-- It is not a horror mark. The skull is weathered, not bloody; the
-  robot is calm, not menacing. The tone matches the project's
-  promise to be a useful, auditable tool, not a stunt.
-- It is not "AI replaces human." The human half is literally still
-  there, sharing the same face. The AI is an administrator *for*
-  the owner of the machine, not a replacement *of* them.
-- It is not a brand for a hosted service. There is no cloud, no
-  swoosh, no third-party logo. The face is self-contained, because
-  the machine is self-contained: the operator owns the hardware,
-  the keys, and the off switch.
-
-## One-line reading
-
-> An ordinary PC (the skull) with a calm, listening, root-capable
-> AI Systems Administrator fused to it (the robot), sharing one
-> glowing eye that belongs to the operator who can turn it off.
+The best version feels like a trustworthy admin tool with a darkly humorous
+name: a machine helper that is awake, local, and accountable.

@@ -1,9 +1,35 @@
 # Changelog
 
-All notable changes to Ubuntu Zombie are documented in this file.
+All notable changes to windows11-zombie are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.4.0] - 2026-05-28
+
+### Changed — Platform pivot: Ubuntu → Windows 11
+
+- Rebranded the project and repository to `windows11-zombie` for the
+  Windows 11 port.
+- Replaced the Bash/systemd/sudo/apt/UFW/logrotate integration layer with
+  PowerShell, Windows Services, Scheduled Tasks, WinGet, Windows Defender
+  Firewall, ACL-protected `C:\ProgramData\AiZombie\` state, and built-in
+  agent log rotation.
+- Added `Windows11Zombie-Chat` service supervision and the
+  `Windows11Zombie-Health` Scheduled Task running `Health-Check.ps1` as
+  SYSTEM.
+- Moved the trust model to Windows identities: `LocalSystem` by default,
+  with an optional local Administrators account named `zombie` for service
+  identity parity.
+- Documented the Windows policy gate as the sole privileged-action
+  boundary, with read-only diagnostics auto-run, mutating actions requiring
+  operator approval, and destructive actions requiring an explicit
+  confirmation phrase.
+- Updated the agent OS-abstraction layer and documentation for Windows
+  command dispatch: services, Event Log, WinGet, Defender Firewall,
+  local users/groups, Tailscale, screenshots, and GUI actions.
 
 ## [Unreleased]
 

@@ -1,140 +1,151 @@
 # AGENTS.md
 
-Guidance for AI coding agents (Claude Code, Codex, Copilot, Cursor,
-Aider, etc.) working in this repository. Human contributors should
-read [`CONTRIBUTING.md`](CONTRIBUTING.md) first; this file restates
-the bits an autonomous agent is most likely to get wrong.
+Guidance for AI coding agents working in this repository. Human
+contributors should read `CONTRIBUTING.md` first; this file restates the
+Windows-specific details an autonomous agent is most likely to get wrong.
 
 ## What this repository is
 
-Ubuntu Zombie is a Bash + Python installer that adds a private,
-root-capable AI Systems Administrator account (`agent`) to an Ubuntu
-Desktop LTS machine. The whole product ships as shell scripts and a
-small Python service. There is no compiled artifact and no package
-manager registry — a "release" is a tarball produced by `make package`.
+Windows 11 Zombie is a PowerShell + Python/Node installer that adds a
+private, policy-gated AI Systems Administrator to a Windows 11 PC. The OS
+integration layer is Windows Services, Scheduled Tasks, Defender Firewall,
+WinGet, local users/groups, and ACL-protected files under
+`C:\ProgramData\AiZombie\`. The portable agent runtime remains under
+`payload/agent/`.
 
 Read these before changing anything substantive:
 
-- [`README.md`](README.md) — entry point and trust model summary.
-- [`docs/VISION.md`](docs/VISION.md) — explicit in-scope / out-of-scope.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — components, action
-  classes, trust boundaries.
-- [`SECURITY.md`](SECURITY.md) — threat model and disclosure policy.
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — full conventions, including
-  the provider and policy-class extension recipes.
+- `README.md` — entry point and trust model summary.
+- `docs/VISION.md` — in-scope and out-of-scope goals.
+- `docs/ARCHITECTURE.md` — Windows components and trust boundaries.
+- `SECURITY.md` — Windows threat model and disclosure policy.
+- `CONTRIBUTING.md` — development loop and extension recipes.
 
 ## Repository layout
 
-```
+```text
 scripts/
-  install.sh              # main installer (idempotent; install/verify/doctor/repair/uninstall)
-  uninstall.sh            # uninstaller
-payload/                  # files copied to /opt/ai-zombie/ on the target
-  agent/                  # Python chat service (audit, history, policy, providers, runner, server)
-  bin/                    # operator helpers (verify, secrets-edit, collect-diagnostics, ...)
-  etc/policy.yaml         # default policy gate
-  systemd/                # unit files
-  logrotate/              # rotation rules
-tests/smoke.sh            # non-root checks: syntax, python compile, subcommands, noninteractive, standards
-docs/                     # user docs + docs/design-notes/ background essays
-.github/workflows/ci.yml  # CI: lint, smoke tests, package, secret scan
-Makefile, VERSION
+  Install.ps1              # elevated installer: install/verify/doctor/repair/uninstall
+  Uninstall.ps1            # uninstaller wrapper
+payload/
+  agent/                   # portable Python/Node chat service and policy runtime
+  bin/                     # PowerShell helpers (Zombie-Chat, Health-Check, ...)
+  etc/policy.yaml          # default policy gate
+tests/Smoke.ps1            # syntax, python, policy, subcommands, standards
+build.ps1, VERSION
+docs/
+```
+
+Installed machines use:
+
+```text
+C:\ProgramData\AiZombie\
+  bin\ agent\ etc\ secrets\ logs\ state\ agent-env\ pi\
 ```
 
 ## Commands
 
-Run these from the repo root. They are the same commands CI runs.
+Run from the repository root:
 
-```bash
-make lint     # shellcheck (warning+) on every bash file, bash -n, python compile
-make test     # tests/smoke.sh all (syntax, python, subcommands, noninteractive, standards)
-make package  # produce dist/ubuntu-zombie-$(cat VERSION).tar.gz
+```powershell
+pwsh -File build.ps1 lint
+pwsh -File build.ps1 test
+pwsh -File build.ps1 package
 ```
 
-Always run `make lint` and `make test` after editing shell or Python.
-Both must pass before you hand work back. They require `bash`,
-`shellcheck`, and `python3` — nothing else.
+The real installer must be run from an elevated PowerShell session on a
+disposable Windows 11 machine:
 
-Do **not** run `make install-local` or `scripts/install.sh install`
-from an agent environment, your workstation, or any machine you are
-not prepared to wipe. The installer mutates users, sudoers, systemd
-units, firewall rules, and Tailscale state; it is intended only for
-a disposable Ubuntu Desktop LTS VM. The same applies to `uninstall.sh`,
-`secrets-edit`, and anything under `/opt/ai-zombie/`.
+```powershell
+pwsh -File scripts/Install.ps1 install
+pwsh -File scripts/Install.ps1 verify
+pwsh -File scripts/Install.ps1 doctor
+pwsh -File scripts/Install.ps1 repair
+pwsh -File scripts/Uninstall.ps1 -Archive -AssumeYes
+```
+
+Do **not** run `scripts/Install.ps1 install`, `scripts/Uninstall.ps1`, or
+helpers that mutate `C:\ProgramData\AiZombie\` from an agent environment
+or a workstation you are not prepared to change. Prefer Windows Sandbox or
+a disposable VM.
 
 ## Non-negotiable rules
 
-These come from `CONTRIBUTING.md` and the trust model. Violating any
-of them will get a change rejected.
+1. **Idempotence.** `Install.ps1 install` must converge on re-run. Check
+   before creating users, services, tasks, firewall rules, directories,
+   ACLs, or machine environment variables.
+2. **Administrator boundary.** Installer and repair work require an
+   elevated PowerShell session. Documentation should say "Run as
+   Administrator" rather than using Linux privilege language.
+3. **Policy gate + audit log.** There is no Windows per-command elevation prompt in
+   this project. Any privileged or mutating behaviour must go through
+   `payload/agent/policy.py` and be recorded by `payload/agent/audit.py`.
+4. **No secrets in the repo.** Use placeholders such as `sk-...` in docs.
+5. **No new runtime dependencies** beyond PowerShell, Python 3.12, Node.js
+   20, WinGet/App Installer, and optional Tailscale unless the task
+   explicitly requires it.
+6. **No local state, screenshots, diagnostics, or generated archives in
+   commits.**
 
-1. **Idempotence.** `scripts/install.sh install` must converge on
-   re-run without errors. Any new step that creates files, users,
-   services, or firewall rules must check current state first.
-2. **Non-interactive mode.** `ZOMBIE_NONINTERACTIVE=1` (with
-   `SSH_PUBLIC_KEY` and `VNC_PASSWORD` when needed) must work
-   end-to-end; CI depends on it. Missing required env in
-   non-interactive mode exits `64`.
-3. **Policy gate + audit log.** Any new privileged behaviour must go
-   through `payload/agent/policy.py` and be recorded by
-   `payload/agent/audit.py`. Do not call `sudo` from new code paths
-   without a matching policy class.
-4. **No secrets in the repo.** CI fails on long `sk-…`, `sk-ant-…`,
-   or `tskey-auth-…` values. Use placeholders like `sk-...` in docs.
-5. **No new runtime dependencies** outside the set the installer
-   already installs (see `CONTRIBUTING.md` → Conventions for the
-   exact list). Standard library is always fine.
-6. **No commits of local state, screenshots, or diagnostics.**
+## Windows command vocabulary
+
+Use these replacements consistently in docs and code:
+
+- Services: `Get-Service`, `Start-Service`, `Stop-Service`,
+  `Restart-Service`, and `sc.exe` for identity configuration.
+- Logs: `Get-WinEvent -LogName Application -ProviderName
+  Windows11Zombie-Chat -MaxEvents 50` and files under
+  `C:\ProgramData\AiZombie\logs\`.
+- Packages: `winget install --silent --accept-source-agreements
+  --accept-package-agreements ...`.
+- Firewall: `Get-NetFirewallRule`, `New-NetFirewallRule`, and the
+  `Windows11 Zombie` rule group.
+- Users: `New-LocalUser`, `Add-LocalGroupMember`, and ACL cmdlets.
+- GUI: `payload/bin/Screenshot.ps1` plus `payload/bin/GuiAction.ps1`.
+- Tailscale: `& 'C:\Program Files\Tailscale\tailscale.exe' up`.
 
 ## Code conventions
 
-- **Bash:** `#!/usr/bin/env bash`, `set -Eeuo pipefail`,
-  ShellCheck-clean at `--severity=warning`. Quote expansions. Wrap
-  long lines with `\` rather than disabling shellcheck rules. New
-  shell helpers under `payload/bin/` are linted even without a `.sh`
-  extension, so keep the bash shebang.
-- **Python:** 4-space indent, type hints on public functions, no
-  third-party deps beyond those the installer installs. Files must
-  pass `python3 -m py_compile`. Match the style of the surrounding
-  module (`payload/agent/*.py`).
-- **Markdown:** wrap at ~78 columns where reasonable. Reference
-  files with backticked relative paths so links work on GitHub.
-- **Commits:** imperative subject under 72 characters. Group related
+- **PowerShell:** keep scripts parse-clean under PowerShell 7 and Windows
+  PowerShell 5.1 when they are installer entry points. Use explicit error
+  handling and avoid interactive prompts unless an `-AssumeYes` or
+  non-interactive path exists.
+- **Python:** 4-space indent, type hints on public functions, standard
+  library preferred, and `python -m compileall` clean.
+- **Markdown:** wrap at roughly 78 columns and use Windows paths when
+  describing this project.
+- **Commits:** imperative subject under 72 characters; group related
   changes.
 
 ## Extending the system
 
-Follow the recipes in `CONTRIBUTING.md` literally — they encode
-invariants the runtime relies on:
-
 - **New LLM provider:** implement `BaseProvider` in
-  `payload/agent/providers.py`, register in `provider_from_env()`,
-  document env vars in `docs/CONFIGURATION.md`, and add an import
-  smoke test in `tests/smoke.sh`.
-- **New policy class:** add it to `payload/etc/policy.yaml`, handle
-  it in `payload/agent/policy.py`, and describe it in
-  `docs/ARCHITECTURE.md`.
-- **New installer subcommand:** add it to `scripts/install.sh`,
-  list it in `README.md`'s Subcommands block, and extend the
-  `subcommands` case in `tests/smoke.sh` so CI checks parsing.
+  `payload/agent/providers.py`, register it in `provider_from_env()`,
+  document machine env vars and `secrets\env` entries in
+  `docs/CONFIGURATION.md`, and add smoke coverage if needed.
+- **New policy class:** add it to `payload/etc/policy.yaml`, handle it in
+  `payload/agent/policy.py`, document it in `docs/ARCHITECTURE.md`, and
+  ensure audit logging records every decision.
+- **New installer subcommand:** add it to `scripts/Install.ps1`, document
+  it in `README.md`, and extend `tests/Smoke.ps1` subcommand checks.
 
 ## Before handing work back
 
-- [ ] `make lint` is clean.
-- [ ] `make test` is clean.
-- [ ] If you touched `scripts/install.sh`, you re-checked
-      idempotence and the `ZOMBIE_NONINTERACTIVE=1` path.
-- [ ] If you touched anything under `payload/agent/`, you verified
-      no new `sudo`/privileged action bypasses the policy gate or
-      audit log.
-- [ ] `docs/` and `README.md` reflect any user-visible change
-      (subcommands, env vars, defaults).
-- [ ] `CHANGELOG.md` has an entry under the appropriate unreleased
-      section for user-visible changes.
-- [ ] No secrets, screenshots, or local state are staged.
+- [ ] `pwsh -File build.ps1 lint` is clean when relevant.
+- [ ] `pwsh -File build.ps1 test` is clean when relevant.
+- [ ] If installer logic changed, idempotence and elevated Windows paths
+      were re-checked.
+- [ ] If `payload/agent/` changed, no privileged action bypasses policy or
+      audit.
+- [ ] User-facing docs and `CHANGELOG.md` reflect the change.
+- [ ] No secrets, screenshots, diagnostics, local state, or generated
+      packages are staged.
 
-## Things to leave alone unless explicitly asked
+## Leave alone unless explicitly asked
 
-- `VERSION` — bumped only as part of a release.
-- `LICENSE`, `CODE_OF_CONDUCT.md`, `SECURITY.md` disclosure section.
-- `docs/design-notes/` — historical context; treat as read-only.
-- `.github/CODEOWNERS` and workflow permissions.
+- `VERSION`, except during a release.
+- `LICENSE`, `CODE_OF_CONDUCT.md`, and disclosure contact details.
+- Historical comparison material except where it names this project.
+- `payload/agent/paths.py` Linux fallback comments.
+- `payload/agent/templates/*.tmpl` and `payload/agent/skills/*.md` when a
+  task says they are already updated.

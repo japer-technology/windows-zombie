@@ -1,90 +1,30 @@
 # Vision
 
-<p align="center">
-  <picture>
-    <img src="https://raw.githubusercontent.com/japer-technology/ubuntu-zombie/main/LOGO.png" alt="Ubuntu Zombie" width="420">
-  </picture>
-</p>
+windows11-zombie turns a Windows 11 PC into a local, accountable AI Systems
+Administrator. The operator keeps control through policy, approval, audit,
+and a desktop session they can inspect.
 
-## The one-sentence vision
+## What we are building
 
-> **Ubuntu Zombie turns a supported Ubuntu Desktop LTS machine into a
-> computer that can administer itself — by installing a private,
-> root-capable AI Systems Administrator account that the owner can ask
-> to diagnose, explain, configure, repair, and operate the machine, in
-> plain language, under explicit human approval, with every action
-> written to an auditable log.**
+A private assistant that can:
 
-That sentence is the entire MVP. It is deliberately narrow, and every
-line of code in this repository exists to make it true, observable,
-and reversible.
+- diagnose a Windows desktop or workstation;
+- explain proposed fixes before making them;
+- use WinGet, Windows Services, Defender Firewall, local users/groups,
+  logs, and GUI automation through documented tools;
+- keep a durable audit trail under `C:\ProgramData\AiZombie\logs\`;
+- work over RDP and/or Tailscale without exposing the chat UI directly.
 
-## Why this exists
+## What we are not building
 
-Personal computers have become powerful enough to run real workloads
-and complex enough that most owners cannot safely operate them. The
-gap between *"my laptop is broken"* and *"here is the exact `systemd`
-unit, kernel parameter, or `apt` pin that will fix it"* is filled,
-today, by a friend, a forum thread, or a paid technician.
+- a stealth remote administration tool;
+- a malware-like persistence mechanism;
+- a cloud control plane for fleets;
+- a bypass for Windows security controls;
+- an agent that mutates the system without policy and operator approval.
 
-Ubuntu Zombie closes that gap on the machine itself. The owner asks
-the computer a question; the computer answers as an administrator
-would, proposes the commands it would run, waits for approval, runs
-them, and writes down what happened. The operator stays in charge of
-the machine the whole time.
+## Design stance
 
-## What the MVP promises
-
-1. **A controlled sysadmin assistant with local authority.** A
-   dedicated `zombie` account (renameable at install time) holds
-   passwordless `sudo` and serves as the operating identity of the AI
-   Systems Administrator — never a shared human login.
-2. **An explicit policy and approval model before privileged
-   actions.** Destructive, networked, or system-altering commands are
-   classified, gated, and surfaced to the operator before they run.
-3. **An auditable trail of every command the AI proposes or runs.**
-   What was asked, what was proposed, what was approved, and what the
-   system did — all recorded and inspectable after the fact.
-4. **Operator revocation as a first-class feature.** Rotating the
-   provider API key, removing the SSH key, disabling the Tailscale
-   account, or running `uninstall` stops the agent. The kill switch
-   is the operator's, not the vendor's.
-
-## What the MVP does not promise
-
-- **Autonomous ownership of the machine.** The operator is the
-  principal. The agent is a tool with hands, not a tenant.
-- **Local-only inference.** The MVP relies on a configured cloud
-  provider. Local and on-device models are tracked in
-  [`ROADMAP.md`](ROADMAP.md), not shipped here.
-- **Multi-tenant or fleet management.** One machine, one operator,
-  one trust boundary. Fleet orchestration is out of scope.
-- **Replacement of the human users on the desktop.** Existing logins,
-  files, and workflows are left alone. Ubuntu Zombie installs
-  *beside* the user, not *over* them.
-- **A locked appliance or a hosted service.** This is a transparent
-  bash installer on a normal Ubuntu LTS system. Every component can
-  be inspected, modified, or removed.
-
-## Trust model summary
-
-The local `zombie` account (renameable with `ZOMBIE_USER=<name>`)
-holds passwordless `sudo` and is the operating identity of the AI
-Systems Administrator. The configured token provider authenticates
-the administrator. The operator owns the machine and can rotate the
-API key, revoke the SSH key, disable the Tailscale account, or
-uninstall the system at any time. Inbound network access is
-restricted to a private Tailscale tailnet; the public internet is
-never a control plane for this machine.
-
-## How to read the rest of the docs
-
-- [`SECURITY.md`](../SECURITY.md) — the full trust boundary, what the
-  provider sees, and the disclosure policy.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — components, action classes,
-  and the approval pipeline.
-- [`ROADMAP.md`](ROADMAP.md) — what is intentionally post-MVP and
-  what we have committed *not* to ship until the MVP is solid.
-
-If a feature request or pull request expands beyond the one-sentence
-promise above, it belongs in `ROADMAP.md` first, not in `main`.
+The agent may be powerful, but it should be boringly observable. A Windows
+operator should be able to read the policy, inspect the service, review the
+logs, and uninstall the system without reverse engineering hidden state.

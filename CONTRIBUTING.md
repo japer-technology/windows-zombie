@@ -1,107 +1,92 @@
 # Contributing
 
-Thanks for taking the time to look at Ubuntu Zombie.
+Thank you for improving windows11-zombie. The project is a Windows 11
+installer plus a portable Python/Node agent runtime, so changes should be
+small, reviewable, and safe to validate on disposable Windows machines.
 
-## Ground rules
+## Development loop
 
-- The installer must remain idempotent. Re-running `install` must
-  converge to the desired state without errors.
-- The installer must work in non-interactive mode for CI.
-- New external commands must be justified, version-pinned where
-  practical, and retried on transient network failures.
-- New privileged behaviour must go through the policy gate and the
-  audit log.
-- No commits of secrets, screenshots, or local state. The
-  `.gitignore` already excludes the common cases.
+From the repository root:
 
-## Local development
-
-```bash
-git clone https://github.com/japer-technology/ubuntu-zombie.git
-cd ubuntu-zombie
-make lint     # ShellCheck + bash -n + python compile
-make test     # smoke tests (no root required)
+```powershell
+pwsh -File build.ps1 help
+pwsh -File build.ps1 lint
+pwsh -File build.ps1 test
+pwsh -File build.ps1 package
 ```
 
-You need:
+`lint` parses PowerShell, compiles Python, and parses `policy.yaml`.
+`test` runs `tests/Smoke.ps1 all`. CI runs on `windows-latest`.
 
-- `bash`, `shellcheck`, `python3` for `lint` and `test`;
-- a disposable Ubuntu Desktop LTS VM for `make install-local`.
+Use Windows Sandbox, a Hyper-V VM, or another throwaway Windows 11 22H2+
+Pro/Enterprise machine for real installs. Do not run the installer or
+uninstaller on a machine you are not prepared to modify.
 
-## Layout
+## Installer rules
 
-See `docs/ARCHITECTURE.md` for components. The repository roughly mirrors
-what ends up on a target machine:
+`scripts/Install.ps1` supports `install`, `verify`, `doctor`, `repair`,
+and `uninstall`. It must be idempotent: re-running `install` should
+converge without duplicate users, services, tasks, firewall rules, ACLs,
+or PATH entries.
 
-```
-.
-├── scripts/
-│   ├── install.sh                # main installer
-│   └── uninstall.sh              # uninstaller
-├── payload/                      # files copied to /opt/ai-zombie/
-│   ├── agent/                    # Python chat service
-│   ├── bin/                      # operator helpers
-│   ├── etc/policy.yaml           # default policy
-│   ├── systemd/                  # unit files
-│   └── logrotate/                # rotation rules
-├── tests/
-│   └── smoke.sh                  # syntax + non-interactive checks
-├── docs/                         # user-facing docs and design notes
-├── Makefile
-├── VERSION
-├── README.md
-├── CHANGELOG.md
-├── CONTRIBUTING.md
-├── CODE_OF_CONDUCT.md
-├── LICENSE
-└── SECURITY.md
+The installer is expected to run from an elevated PowerShell session
+("Run as Administrator"). Missing prerequisites should produce actionable
+errors and, where appropriate, WinGet commands using:
+
+```powershell
+winget install --silent --accept-source-agreements --accept-package-agreements <Package.Id>
 ```
 
-## Running tests
+## Security invariants
 
-`tests/smoke.sh` runs without root and without changing system state:
+- The service is `Windows11Zombie-Chat`; health supervision is the
+  `Windows11Zombie-Health` Scheduled Task.
+- Installed state lives under `C:\ProgramData\AiZombie\` unless
+  `AI_ZOMBIE_ROOT` overrides it.
+- The local `zombie` account is a member of Administrators. The service
+  may run as `LocalSystem` or `zombie`.
+- There is no Linux-style per-command elevation prompt. `payload/etc/policy.yaml`,
+  `payload/agent/policy.py`, and `payload/agent/audit.py` are the
+  privilege and accountability boundary.
+- Secrets stay out of git. Use `C:\ProgramData\AiZombie\secrets\env` and
+  `payload/bin/Secrets-Edit.ps1`.
 
-- `bash -n` on the installer and every shipped shell helper;
-- `python3 -m py_compile` on every shipped Python file;
-- a check that the installer recognises every documented subcommand;
-- a check that `ZOMBIE_NONINTERACTIVE=1` without required env exits
-  with code `64`.
+## Documentation rules
 
-CI runs the same script on every push and pull request, plus
-`shellcheck` on every shell file.
+When a user-visible behaviour changes, update the relevant docs and add a
+`CHANGELOG.md` entry. Use Windows terms and paths:
 
-## Conventions
+- `Get-Service` / `Restart-Service` / `sc.exe` for services;
+- `Get-WinEvent` and `C:\ProgramData\AiZombie\logs\` for logs;
+- Defender Firewall cmdlets for network rules;
+- WinGet for packages;
+- `Screenshot.ps1` and `GuiAction.ps1` for GUI automation.
 
-- Shell: `#!/usr/bin/env bash`, `set -Eeuo pipefail`, ShellCheck
-  clean. Wrap long lines with `\` rather than disabling rules.
-- Python: 4-space indent, type hints on public functions, no
-  third-party dependencies outside what the installer already
-  installs (`openai`, `anthropic`, `requests`, `pydantic`, `rich`,
-  `typer`, `python-dotenv`, `playwright`, `pyautogui`, `pillow`,
-  `mss`, `opencv-python`, `python-xlib`, plus the standard library).
-- Docs: Markdown, line-wrapped at ~78 characters where reasonable.
-- Commits: imperative subject lines under 72 characters.
+## Extension recipes
 
-## Adding a provider
+### New provider
 
-1. Implement `BaseProvider` in `payload/agent/providers.py`.
-2. Register it in `provider_from_env()`.
-3. Document the env vars in `docs/CONFIGURATION.md`.
-4. Add a smoke test in `tests/smoke.sh` for the import.
+Implement `BaseProvider` in `payload/agent/providers.py`, register it in
+`provider_from_env()`, document environment variables and secrets in
+`docs/CONFIGURATION.md`, and add smoke coverage when practical.
 
-## Adding a policy class
+### New policy class
 
-1. Add the class and matching patterns to `payload/etc/policy.yaml`.
-2. Add a handler in `payload/agent/policy.py`.
-3. Document the class in `docs/ARCHITECTURE.md`.
+Add the class to `payload/etc/policy.yaml`, implement classification in
+`payload/agent/policy.py`, describe it in `docs/ARCHITECTURE.md`, and make
+sure audit entries include the decision.
 
-## Filing an issue
+### New helper or installer subcommand
 
-Please attach a redacted diagnostic bundle when reporting installer
-failures:
+Add the PowerShell helper under `payload/bin/` or the subcommand in
+`scripts/Install.ps1`, then update `README.md`, `docs/QUICKSTART.md`, and
+`tests/Smoke.ps1` if the command surface changed.
 
-```bash
-sudo /opt/ai-zombie/bin/collect-diagnostics
-```
+## Pull request checklist
 
-Security issues: see `SECURITY.md` for responsible disclosure.
+- [ ] `pwsh -File build.ps1 lint` passes when code changed.
+- [ ] `pwsh -File build.ps1 test` passes when code changed.
+- [ ] Documentation reflects user-visible changes.
+- [ ] `CHANGELOG.md` has an entry.
+- [ ] No secrets, local state, screenshots, diagnostics, or generated
+      archives are included.

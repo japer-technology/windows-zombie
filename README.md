@@ -1,103 +1,140 @@
-# Ubuntu Zombie
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![AI](https://img.shields.io/badge/Assisted-Development-2b2bff?logo=openai&logoColor=white)](https://www.japer.technology)
+# windows11-zombie
 
 <p align="center">
-  <picture>
-    <img src="https://raw.githubusercontent.com/japer-technology/ubuntu-zombie/main/LOGO.png" alt="Ubuntu Zombie" width="500">
-  </picture>
+  <img src="https://raw.githubusercontent.com/japer-technology/windows11-zombie/main/LOGO.png" alt="Windows 11 Zombie" width="500">
 </p>
 
-> **Ubuntu Zombie adds a private, root-capable AI Systems
-> Administrator account to supported Ubuntu Desktop LTS machines so an
-> owner can ask the machine to diagnose, explain, configure,
-> repair, and operate itself.**
+> **Windows 11 Zombie adds a private, policy-gated AI Systems
+> Administrator to Microsoft Windows 11.** It installs a local chat
+> daemon, a portable Python/Node agent runtime, Windows Service
+> supervision, Defender Firewall rules, and ACL-protected state under
+> `C:\ProgramData\AiZombie\`.
 
-# An AI SysAdmin
+The project targets **Windows 11 22H2+ Pro or Enterprise**. Windows 11
+Home can run the agent, but Group Policy and some firewall profile controls
+are reduced. The service runs as `LocalSystem` by default, while the
+installer also creates a local Administrators account named `zombie` for
+operators who want a dedicated service identity.
 
-It is a normal Ubuntu PC with an administrator inside it. Any local
-user can open a private chat, ask the machine to do something, see
-exactly what is proposed, approve it, and watch it happen. Everything
-the AI does is audit-logged. Inbound network access is restricted to a
-private Tailscale tailnet. The operator owns the machine, the SSH
-key, the API key, and the kill switch.
+Repository: <https://github.com/japer-technology/windows11-zombie>
 
-## Quickstart
+## What it installs
 
-```bash
-git clone https://github.com/japer-technology/ubuntu-zombie.git
-cd ubuntu-zombie
-chmod +x scripts/install.sh
-sudo ./scripts/install.sh install
-sudo reboot
-# after reboot:
-/opt/ai-zombie/bin/verify
-sudo /opt/ai-zombie/bin/secrets-edit   # add an LLM API key
-sudo systemctl restart ubuntu-zombie-chat.service
-# open http://127.0.0.1:7878/ locally, or tunnel over Tailscale:
-ssh -L 7878:127.0.0.1:7878 zombie@<tailscale-name-or-ip>
+- `Windows11Zombie-Chat`, an auto-starting Windows Service with restart on
+  failure.
+- `Windows11Zombie-Health`, a Scheduled Task that runs
+  `Health-Check.ps1` as SYSTEM every five minutes.
+- `C:\ProgramData\AiZombie\` containing `bin\`, `agent\`, `etc\`,
+  `secrets\`, `logs\`, `state\`, `agent-env\`, and `pi\`.
+- A machine-wide `windows11-zombie.cmd` shim on `PATH` that launches
+  `payload/bin/Zombie-Chat.ps1`.
+- A `Windows11 Zombie` Windows Defender Firewall rule group. The chat
+  port (`7878`) binds to loopback only and is denied from other
+  interfaces. RDP and optional OpenSSH should be restricted to Tailscale.
+- An ACL-protected plaintext secrets file at
+  `C:\ProgramData\AiZombie\secrets\env`.
+
+There is no Linux privilege prompt, Linux service manager, Linux firewall frontend, Linux package manager, or external log-rotation daemon on Windows. The
+policy engine in `payload/etc/policy.yaml` is the sole privilege gate:
+read-only diagnostics may auto-run, mutating actions need operator
+approval, and destructive actions require an explicit confirmation phrase.
+The agent rotates JSONL audit logs itself under `logs\`.
+
+## Requirements
+
+- Windows 11 22H2+ Pro or Enterprise recommended.
+- PowerShell 7+ (`pwsh`) for normal operation. Windows PowerShell 5.1 is
+  supported only for bootstrap compatibility.
+- WinGet / App Installer 1.6+.
+- Python 3.12, Node.js 20, and optional Tailscale. The installer can use
+  WinGet to install missing runtimes:
+
+```powershell
+winget install --silent --accept-source-agreements --accept-package-agreements Python.Python.3.12
+winget install --silent --accept-source-agreements --accept-package-agreements OpenJS.NodeJS.LTS
+winget install --silent --accept-source-agreements --accept-package-agreements Tailscale.Tailscale
 ```
 
-Full walkthrough with expected output and failure branches:
-[`docs/QUICKSTART.md`](docs/QUICKSTART.md).
+## Quick start
 
-## Subcommands
+Open **PowerShell as Administrator** and run:
 
-```
-sudo ./scripts/install.sh install     # full install or upgrade, idempotent
-sudo ./scripts/install.sh verify      # read-only state check
-sudo ./scripts/install.sh doctor      # explain failures
-sudo ./scripts/install.sh repair      # fix known-safe drift
-sudo ./scripts/install.sh uninstall   # reverse the install
-```
-
-To upgrade an existing host (or refresh after fixing a bug upstream),
-pull the latest source and re-run `install`:
-
-```bash
-cd ubuntu-zombie
-git pull
-sudo ./scripts/install.sh install
-sudo systemctl restart ubuntu-zombie-chat.service
+```powershell
+git clone https://github.com/japer-technology/windows11-zombie.git
+cd windows11-zombie
+pwsh -File scripts/Install.ps1 install
+pwsh -File scripts/Install.ps1 verify
+windows11-zombie.cmd
 ```
 
-See [`docs/QUICKSTART.md`](docs/QUICKSTART.md#upgrade--refresh-from-github)
-for the non-interactive variant and when a reboot is required.
+The helper prints the local chat URL. By default the web UI listens on
+`http://127.0.0.1:7878/`; use RDP or a Tailscale tunnel from a trusted
+operator machine rather than exposing the port directly.
 
-Non-interactive variants and every environment variable: see
-[`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) and `--help`.
+Common lifecycle commands:
 
-## Documentation
+```powershell
+pwsh -File scripts/Install.ps1 doctor
+pwsh -File scripts/Install.ps1 repair
+Restart-Service Windows11Zombie-Chat
+Get-Service Windows11Zombie-Chat
+Get-WinEvent -LogName Application -ProviderName Windows11Zombie-Chat -MaxEvents 50
+Get-Content C:\ProgramData\AiZombie\logs\audit.log -Tail 50
+pwsh -File scripts/Uninstall.ps1 -Archive -AssumeYes
+```
 
-| Document                                                       | When to read it                                   |
-| -------------------------------------------------------------- | ------------------------------------------------- |
-| [`docs/VISION.md`](docs/VISION.md)                             | What this project promises (and does not)         |
-| [`docs/QUICKSTART.md`](docs/QUICKSTART.md)                     | First successful install in ten steps             |
-| [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md)               | Provider keys, Tailscale, VNC, chat, policy       |
-| [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)           | Common failures and their fixes                   |
-| [`SECURITY.md`](SECURITY.md)                                   | Trust model, what the provider sees, disclosure   |
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)                 | Components, action classes, trust boundaries      |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md)                           | How to test and change the installer              |
-| [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)                     | Community expectations                            |
-| [`LICENSE`](LICENSE)                                           | MIT license terms                                 |
-| [`CHANGELOG.md`](CHANGELOG.md)                                 | Versioned release history                         |
-| [`docs/POSSIBILITIES.md`](docs/POSSIBILITIES.md)               | Exploratory analysis: many named personas on one PC |
+To bring up Tailscale on Windows:
 
-## Trust model in one paragraph
+```powershell
+& 'C:\Program Files\Tailscale\tailscale.exe' up
+```
 
-The local `zombie` Linux user (renameable at install time with
-`ZOMBIE_USER=<name>`) is the operating identity of the AI
-Systems Administrator and holds passwordless `sudo`. The configured
-cloud LLM provider authenticates the administrator. The operator owns
-the machine, the SSH private key, the API key, and the Tailscale
-account, and can rotate, revoke, or uninstall any of them at any
-time. Privileged actions go through a local policy gate before
-`sudo`. Every action is audit-logged. There is no public inbound
-exposure. Read [`SECURITY.md`](SECURITY.md) before running the
-installer.
+## Configuration
 
-## License
+Primary configuration lives under `C:\ProgramData\AiZombie\etc\`:
 
-Ubuntu Zombie is released under the MIT License. By contributing you agree
-your contributions are released under the same license.
+- `policy.yaml` defines tool classes, approvals, budgets, and destructive
+  confirmation rules.
+- `settings.json` and `APPEND_SYSTEM.md` override agent behaviour.
+- `skills.d\` contains operator skill documents.
+- `secrets\env` stores provider tokens and other secrets with inheritance
+  disabled and FullControl granted only to Administrators, SYSTEM, and
+  `zombie`.
+
+Machine environment variables can be set with:
+
+```powershell
+[System.Environment]::SetEnvironmentVariable('ZOMBIE_PROVIDER', 'openai', 'Machine')
+[System.Environment]::SetEnvironmentVariable('AI_ZOMBIE_ROOT', 'C:\ProgramData\AiZombie', 'Machine')
+Restart-Service Windows11Zombie-Chat
+```
+
+Use `payload/bin/Secrets-Edit.ps1` to edit secrets; it re-applies ACLs and
+logs a SHA-256 audit entry. DPAPI encryption is a planned stronger option,
+but ACL'd plaintext is the default for parity with the legacy `0640` file.
+
+To run the service as the dedicated `zombie` account instead of
+`LocalSystem`:
+
+```powershell
+sc.exe config Windows11Zombie-Chat obj= .\zombie password= <password>
+Restart-Service Windows11Zombie-Chat
+```
+
+## Development
+
+The repository uses PowerShell build targets and CI runs on
+`windows-latest`:
+
+```powershell
+pwsh -File build.ps1 lint
+pwsh -File build.ps1 test
+pwsh -File build.ps1 package
+```
+
+Do not run the installer, uninstaller, or service helpers on a workstation
+you are not prepared to modify. Use Windows Sandbox, a disposable Hyper-V
+VM, or another throwaway Windows 11 test machine.
+
+See `docs/QUICKSTART.md`, `docs/CONFIGURATION.md`,
+`docs/ARCHITECTURE.md`, and `SECURITY.md` for deeper operational details.
