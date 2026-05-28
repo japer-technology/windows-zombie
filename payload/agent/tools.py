@@ -11,20 +11,24 @@ tool call is dispatched through this module:
   Rejections are recorded as ``tool_call_rejected_schema`` audit events
   by the server before any side effects.
 * :func:`dispatch` runs the registered shim. Shims wrap existing
-  Ubuntu Zombie helpers (``runner.run``, ``Path.read_text`` etc.) so
+  Windows 11 Zombie helpers (``runner.run``, ``Path.read_text`` etc.) so
   the rest of the codebase keeps its existing invariants.
 
 The shapes intentionally avoid pulling in jsonschema or pydantic;
-operators install Ubuntu Zombie on stock Ubuntu and the agent venv
-should not gain third-party deps just to gate a dozen calls.
+operators install Windows 11 Zombie on stock Windows 11 and the agent
+venv should not gain third-party deps just to gate a dozen calls.
 """
 from __future__ import annotations
 
 import os
 import shlex
 import subprocess
+import sys as _sys
 from pathlib import Path
 from typing import Any, Callable
+
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths as _paths  # noqa: E402
 
 from runner import run as run_command  # noqa: E402
 
@@ -105,10 +109,19 @@ def validate_args(name: str, args: dict[str, Any] | None) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def _state_dir() -> Path:
-    return Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie")) / "state"
+    return _paths.state_root()
 
 
 def _read_allowed_prefixes() -> tuple[Path, ...]:
+    if _paths.is_windows():
+        program_data = Path(os.environ.get("ProgramData", r"C:\ProgramData"))
+        return (
+            _state_dir(),
+            _paths.config_root(),
+            _paths.log_root(),
+            program_data,
+            Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32" / "LogFiles",
+        )
     return (
         _state_dir(),
         Path("/etc"),
@@ -120,7 +133,8 @@ def _read_allowed_prefixes() -> tuple[Path, ...]:
 
 
 def _write_allowed_prefixes() -> tuple[Path, ...]:
-    return (_state_dir(), Path("/tmp"))
+    tmp = Path(os.environ.get("TEMP") or os.environ.get("TMP") or "/tmp")
+    return (_state_dir(), tmp)
 
 
 def _within(target: Path, roots: tuple[Path, ...]) -> bool:
@@ -197,7 +211,16 @@ def _shim_pkg_query(args: dict[str, Any]) -> dict[str, Any]:
     name = str(args["name"])
     if not name.replace("-", "").replace("+", "").replace(".", "").isalnum():
         raise SchemaError(f"pkg.query: invalid package name {name!r}")
-    res = run_command(f"dpkg -s {shlex.quote(name)} 2>&1 || apt-cache policy {shlex.quote(name)}")
+    if _paths.is_windows():
+        # WinGet ``show`` returns metadata; fall back to ``list`` to
+        # capture the installed-vs-available state.
+        cmd = (
+            f"winget show --id {shlex.quote(name)} --disable-interactivity 2>&1 || "
+            f"winget list --id {shlex.quote(name)} --disable-interactivity"
+        )
+    else:
+        cmd = f"dpkg -s {shlex.quote(name)} 2>&1 || apt-cache policy {shlex.quote(name)}"
+    res = run_command(cmd)
     return {"exit_code": res.exit_code, "stdout": res.stdout, "stderr": res.stderr}
 
 
@@ -208,7 +231,15 @@ def _shim_pkg_install(args: dict[str, Any]) -> dict[str, Any]:
     for n in names:
         if not isinstance(n, str) or not n.replace("-", "").replace("+", "").replace(".", "").isalnum():
             raise SchemaError(f"pkg.install: invalid package name {n!r}")
-    cmd = "sudo apt-get install -y " + " ".join(shlex.quote(n) for n in names)
+    if _paths.is_windows():
+        parts = [
+            f"winget install --id {shlex.quote(n)} --accept-source-agreements "
+            f"--accept-package-agreements --silent --disable-interactivity"
+            for n in names
+        ]
+        cmd = " && ".join(parts)
+    else:
+        cmd = "sudo apt-get install -y " + " ".join(shlex.quote(n) for n in names)
     res = run_command(cmd)
     return {"exit_code": res.exit_code, "stdout": res.stdout, "stderr": res.stderr,
             "duration_ms": res.duration_ms}
@@ -218,7 +249,14 @@ def _shim_svc_status(args: dict[str, Any]) -> dict[str, Any]:
     unit = str(args["unit"])
     if not all(c.isalnum() or c in "._@-" for c in unit):
         raise SchemaError(f"svc.status: invalid unit {unit!r}")
-    res = run_command(f"systemctl status --no-pager {shlex.quote(unit)} || systemctl is-active {shlex.quote(unit)}")
+    if _paths.is_windows():
+        cmd = (
+            f"powershell.exe -NoProfile -Command "
+            f"\"Get-Service -Name {shlex.quote(unit)} | Format-List Name,Status,StartType,DisplayName\""
+        )
+    else:
+        cmd = f"systemctl status --no-pager {shlex.quote(unit)} || systemctl is-active {shlex.quote(unit)}"
+    res = run_command(cmd)
     return {"exit_code": res.exit_code, "stdout": res.stdout, "stderr": res.stderr}
 
 
@@ -229,20 +267,53 @@ def _shim_svc_control(args: dict[str, Any]) -> dict[str, Any]:
     unit = str(args["unit"])
     if not all(c.isalnum() or c in "._@-" for c in unit):
         raise SchemaError(f"svc.control: invalid unit {unit!r}")
-    res = run_command(f"sudo systemctl {action} {shlex.quote(unit)}")
+    if _paths.is_windows():
+        ps_map = {
+            "start":   f"Start-Service -Name {shlex.quote(unit)}",
+            "stop":    f"Stop-Service -Name {shlex.quote(unit)}",
+            "restart": f"Restart-Service -Name {shlex.quote(unit)}",
+            "reload":  f"Restart-Service -Name {shlex.quote(unit)}",  # no native reload
+            "enable":  f"Set-Service -Name {shlex.quote(unit)} -StartupType Automatic",
+            "disable": f"Set-Service -Name {shlex.quote(unit)} -StartupType Disabled",
+        }
+        cmd = f"powershell.exe -NoProfile -Command \"{ps_map[action]}\""
+    else:
+        cmd = f"sudo systemctl {action} {shlex.quote(unit)}"
+    res = run_command(cmd)
     return {"exit_code": res.exit_code, "stdout": res.stdout, "stderr": res.stderr}
 
 
 def _shim_net_status(args: dict[str, Any]) -> dict[str, Any]:
     target = str(args.get("target") or "all")
-    if target == "ufw":
-        cmd = "sudo ufw status verbose"
-    elif target == "tailscale":
-        cmd = "tailscale status"
-    elif target == "ip":
-        cmd = "ip -brief addr"
+    if _paths.is_windows():
+        ts = r'C:\Program Files\Tailscale\tailscale.exe'
+        if target == "ufw":
+            cmd = ('powershell.exe -NoProfile -Command '
+                   '"Get-NetFirewallProfile | Format-Table Name,Enabled,DefaultInboundAction"')
+        elif target == "tailscale":
+            cmd = f'"{ts}" status'
+        elif target == "ip":
+            cmd = ('powershell.exe -NoProfile -Command '
+                   '"Get-NetIPAddress -AddressFamily IPv4 | '
+                   'Format-Table InterfaceAlias,IPAddress,PrefixLength"')
+        else:
+            cmd = (
+                'powershell.exe -NoProfile -Command '
+                '"Get-NetIPAddress -AddressFamily IPv4 | '
+                'Format-Table InterfaceAlias,IPAddress,PrefixLength; '
+                'Get-NetFirewallProfile | Format-Table Name,Enabled,DefaultInboundAction; '
+                f"if (Test-Path '{ts}') {{ & '{ts}' status }}"
+                '"'
+            )
     else:
-        cmd = "ip -brief addr; sudo ufw status; tailscale status 2>/dev/null || true"
+        if target == "ufw":
+            cmd = "sudo ufw status verbose"
+        elif target == "tailscale":
+            cmd = "tailscale status"
+        elif target == "ip":
+            cmd = "ip -brief addr"
+        else:
+            cmd = "ip -brief addr; sudo ufw status; tailscale status 2>/dev/null || true"
     res = run_command(cmd)
     return {"exit_code": res.exit_code, "stdout": res.stdout, "stderr": res.stderr}
 
@@ -251,7 +322,15 @@ def _shim_gui_screenshot(args: dict[str, Any]) -> dict[str, Any]:
     out = Path(str(args.get("path") or (_state_dir() / "screen.png")))
     if not _within(out, _write_allowed_prefixes()):
         raise SchemaError(f"gui.screenshot: path {out} outside writable allow-list")
-    res = run_command(f"/opt/ai-zombie/bin/screenshot {shlex.quote(str(out))}")
+    helper = _paths.bin_dir() / ("Screenshot.ps1" if _paths.is_windows() else "screenshot")
+    if _paths.is_windows():
+        cmd = (
+            f'powershell.exe -NoProfile -ExecutionPolicy Bypass '
+            f'-File {shlex.quote(str(helper))} -OutPath {shlex.quote(str(out))}'
+        )
+    else:
+        cmd = f"{shlex.quote(str(helper))} {shlex.quote(str(out))}"
+    res = run_command(cmd)
     return {"exit_code": res.exit_code, "path": str(out), "stdout": res.stdout,
             "stderr": res.stderr}
 
@@ -261,25 +340,43 @@ def _shim_gui_click(args: dict[str, Any]) -> dict[str, Any]:
     button = str(args.get("button") or "1")
     if button not in {"1", "2", "3"}:
         raise SchemaError(f"gui.click: invalid button {button!r}")
-    res = run_command(
-        f"/opt/ai-zombie/bin/gui-env xdotool mousemove --sync "
-        f"{int(x)} {int(y)} click {shlex.quote(button)}"
-    )
+    if _paths.is_windows():
+        helper = _paths.bin_dir() / "GuiAction.ps1"
+        cmd = (
+            f'powershell.exe -NoProfile -ExecutionPolicy Bypass '
+            f'-File {shlex.quote(str(helper))} -Action Click '
+            f'-X {int(x)} -Y {int(y)} -Button {shlex.quote(button)}'
+        )
+    else:
+        cmd = (
+            f"{shlex.quote(str(_paths.bin_dir() / 'gui-env'))} xdotool mousemove --sync "
+            f"{int(x)} {int(y)} click {shlex.quote(button)}"
+        )
+    res = run_command(cmd)
     return {"exit_code": res.exit_code, "stdout": res.stdout, "stderr": res.stderr}
 
 
 def _shim_gui_type(args: dict[str, Any]) -> dict[str, Any]:
     text = str(args["text"])
-    res = run_command(
-        f"/opt/ai-zombie/bin/gui-env xdotool type --delay 25 -- {shlex.quote(text)}"
-    )
+    if _paths.is_windows():
+        helper = _paths.bin_dir() / "GuiAction.ps1"
+        cmd = (
+            f'powershell.exe -NoProfile -ExecutionPolicy Bypass '
+            f'-File {shlex.quote(str(helper))} -Action Type '
+            f'-Text {shlex.quote(text)}'
+        )
+    else:
+        cmd = (
+            f"{shlex.quote(str(_paths.bin_dir() / 'gui-env'))} xdotool type --delay 25 -- {shlex.quote(text)}"
+        )
+    res = run_command(cmd)
     return {"exit_code": res.exit_code, "stdout": res.stdout, "stderr": res.stderr}
 
 
 def _skills_dirs() -> list[Path]:
     dirs = [
-        Path("/opt/ai-zombie/skills"),
-        Path("/etc/ubuntu-zombie/skills.d"),
+        _paths.builtin_skills_dir(),
+        _paths.operator_skills_dir(),
     ]
     # Honour ``ZOMBIE_SKILLS_DIR`` only when it is a non-empty value. An
     # empty string would otherwise become ``Path("")``/``Path(".")`` and
@@ -375,7 +472,7 @@ TOOL_REGISTRY: dict[str, dict[str, Any]] = {
     ),
     "pkg.query": _t(
         classification="read_only",
-        description="Query installed package metadata via dpkg/apt-cache.",
+        description="Query installed package metadata via winget (Windows) or dpkg/apt-cache (Linux).",
         schema={
             "type": "object",
             "properties": {"name": {"type": "string"}},
@@ -386,7 +483,7 @@ TOOL_REGISTRY: dict[str, dict[str, Any]] = {
     ),
     "pkg.install": _t(
         classification="system_change",
-        description="Install Debian packages via apt-get.",
+        description="Install packages via winget (Windows) or apt-get (Linux).",
         schema={
             "type": "object",
             "properties": {"names": {"type": "array", "items": {"type": "string"}}},
@@ -475,7 +572,7 @@ TOOL_REGISTRY: dict[str, dict[str, Any]] = {
     ),
     "skill.list": _t(
         classification="read_only",
-        description="Enumerate available skills from /opt/ai-zombie/skills and /etc/ubuntu-zombie/skills.d.",
+        description="Enumerate available skills from the install root skills/ and operator skills.d/ directories.",
         schema={"type": "object", "properties": {}, "required": [],
                 "additionalProperties": False},
         shim=_shim_skill_list,

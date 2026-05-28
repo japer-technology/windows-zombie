@@ -16,9 +16,11 @@ import time
 from pathlib import Path
 from typing import Any
 
-DB_PATH = Path(os.environ.get(
-    "ZOMBIE_HISTORY_DB", "/opt/ai-zombie/state/conversations.db"
-))
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths as _paths  # noqa: E402
+
+DB_PATH = _paths.history_db_path()
 
 SCHEMA_VERSION = 1
 

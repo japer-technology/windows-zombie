@@ -1,248 +1,129 @@
 # Troubleshooting
 
-Common failures and the fastest fixes. Start with:
+Run diagnostics first from an elevated PowerShell session:
 
-```bash
-/opt/ai-zombie/bin/health-check        # or: zombie-health
-sudo ./scripts/install.sh verify       # read-only state check
-sudo ./scripts/install.sh doctor       # explains what is wrong
+```powershell
+pwsh -File scripts/Install.ps1 doctor
+pwsh -File scripts/Install.ps1 verify
+Get-Service Windows11Zombie-Chat
+Get-ScheduledTask Windows11Zombie-Health
+Get-Content C:\ProgramData\AiZombie\logs\install.log -Tail 100
+Get-Content C:\ProgramData\AiZombie\logs\audit.log -Tail 100
 ```
 
-`verify` reports the post-install invariants (no mutation). `doctor`
-describes what is wrong and points at the fix. `repair` applies the
-known-safe fixes: it re-asserts `secrets/env` ownership and `0600`
-mode, re-asserts UFW (`deny in / allow out`, plus the SSH rule scoped
-to `tailscale0` unless `ZOMBIE_SKIP_TAILSCALE=1` was set at install),
-re-renders the `pi-mono` runtime configs under `/opt/ai-zombie/pi/`,
-re-deploys the built-in skill catalogue under `/opt/ai-zombie/skills/`,
-optionally retries Tailscale login when `TAILSCALE_AUTHKEY` is set,
-and restarts the chat service.
+## PowerShell execution policy blocks scripts
 
-A timer (`ubuntu-zombie-health.timer`) runs `health-check` 5 minutes
-after boot and every 15 minutes thereafter; its last run is visible in
-`systemctl status ubuntu-zombie-health.service`.
+For the current elevated shell:
 
----
-
-## `apt`/`dpkg` is locked
-
-```
-Could not get lock /var/lib/dpkg/lock-frontend
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+pwsh -File scripts/Install.ps1 install
 ```
 
-Another package operation is running (often `unattended-upgrades`).
-The installer waits up to five minutes for the lock with exponential
-backoff. If it gives up:
+## Defender SmartScreen or antivirus blocks files
 
-```bash
-ps -ef | grep -E 'apt|dpkg|unattended'
-sudo systemctl stop unattended-upgrades.service
-sudo ./scripts/install.sh install   # safe to re-run
+Unsigned scripts, downloaded archives, `python.exe`, or Node subprocesses
+may be quarantined. Prefer a narrow allow rule for the checkout and
+`C:\ProgramData\AiZombie\` rather than disabling protection globally.
+Check Windows Security history before retrying.
+
+## WinGet is missing
+
+Install or update **App Installer** from Microsoft Store, then verify:
+
+```powershell
+winget --version
 ```
 
-## Tailscale will not log in
+The project expects App Installer / WinGet 1.6+.
 
-```bash
-sudo tailscale up                    # follow the URL it prints
-# or, unattended:
-sudo TAILSCALE_AUTHKEY=tskey-auth-… ./scripts/install.sh repair
+## Runtime packages are missing
+
+```powershell
+winget install --silent --accept-source-agreements --accept-package-agreements Python.Python.3.12
+winget install --silent --accept-source-agreements --accept-package-agreements OpenJS.NodeJS.LTS
 ```
 
-If you see `Logged out` and you supplied a pre-auth key, the key is
-expired or scoped to the wrong tailnet. Generate a new one at
-<https://login.tailscale.com/admin/settings/keys>.
+Restart PowerShell after PATH changes.
 
-If you intentionally installed without Tailscale
-(`ZOMBIE_SKIP_TAILSCALE=1`), `doctor` and `health-check` will skip the
-Tailscale check; SSH is allowed on every interface instead of being
-scoped to `tailscale0`. Run any repair with the same variable set so
-the firewall rule is rewritten correctly:
+## Service did not start in a timely fashion
 
-```bash
-sudo ZOMBIE_SKIP_TAILSCALE=1 ./scripts/install.sh repair
+Inspect service configuration and recent events:
+
+```powershell
+sc.exe query Windows11Zombie-Chat
+sc.exe qc Windows11Zombie-Chat
+Get-WinEvent -LogName Application -ProviderName Windows11Zombie-Chat -MaxEvents 50
+Get-Content C:\ProgramData\AiZombie\logs\chat.log -Tail 100
 ```
 
-## Docker group not applied
+Then repair and restart:
 
-`docker version` reports `permission denied while trying to connect to
-the Docker daemon socket`. The user was added to the `docker` group
-during install but the existing shell session does not see it. Fix:
-
-```bash
-exit          # close every shell, then SSH back in
-# or
-sudo systemctl restart ubuntu-zombie-chat.service
+```powershell
+pwsh -File scripts/Install.ps1 repair
+Restart-Service Windows11Zombie-Chat
 ```
 
-## Desktop automation does not work
+## Firewall profile mismatch
 
-`xdotool` or screenshots fail with `Can't open display`.
+Windows may classify the active network as Public. Inspect profiles and the
+project rule group:
 
-- The desktop session must exist. With autologin disabled (the default),
-  log in graphically as `zombie` first.
-- Check `DISPLAY`: `/opt/ai-zombie/bin/gui-env env | grep DISPLAY`.
-- Verify the session is Xorg, not Wayland:
-  `loginctl show-session "$XDG_SESSION_ID" -p Type`.
-- If Wayland is active, re-run `sudo ./scripts/install.sh repair` and
-  log out / log back in.
-
-## Playwright complains about missing libraries
-
-`python -m playwright install --with-deps chromium` was interrupted.
-Re-run:
-
-```bash
-sudo -iu zombie
-. ~/agent-env/bin/activate
-python -m playwright install --with-deps chromium
+```powershell
+Get-NetConnectionProfile
+Get-NetFirewallProfile
+Get-NetFirewallRule -Group 'Windows11 Zombie'
 ```
 
-## VNC
+Keep chat loopback-only. Scope RDP/OpenSSH rules to Tailscale or trusted
+remote addresses.
 
-- Cannot connect: confirm the SSH tunnel
-  `ss -ltn 'sport = :5900'` should show `127.0.0.1:5900`.
-- Forgot the password: `sudo -u zombie x11vnc -storepasswd`.
-- Black screen: the desktop session is not running. With autologin
-  disabled, log in physically as `zombie` once.
+## Tailscale is not reachable
 
-## Secrets file permissions
+Verify the Windows service and CLI:
 
-`/opt/ai-zombie/secrets/env` must be owned by the agent user and mode
-`0600`. `doctor` and `health-check` flag it as `[--]` / `[warn]` when
-the permissions drift. `secrets-edit` re-asserts ownership and mode on
-exit (even on editor failure), and `install.sh repair` re-asserts them
-across the whole tree. To fix by hand:
-
-```bash
-sudo chown zombie:zombie /opt/ai-zombie/secrets/env
-sudo chmod 600 /opt/ai-zombie/secrets/env
-sudo systemctl restart ubuntu-zombie-chat.service
+```powershell
+Get-Service Tailscale
+& 'C:\Program Files\Tailscale\tailscale.exe' status
+& 'C:\Program Files\Tailscale\tailscale.exe' up
 ```
 
-## Chat service will not start
+Run `tailscale.exe up` from an elevated shell when changing machine-wide
+network state.
 
-```bash
-systemctl status ubuntu-zombie-chat.service
-journalctl -u ubuntu-zombie-chat.service -n 200 --no-pager
+## Local user cmdlets fail
+
+`New-LocalUser` and `Add-LocalGroupMember` require Windows PowerShell 5.1+
+or PowerShell 7 on Windows. They are unavailable on non-Windows hosts and
+some constrained enterprise images. Use a standard Windows 11 Pro or
+Enterprise VM for install testing.
+
+## GUI tools do not render
+
+Scheduled Tasks running as SYSTEM do not have the operator's interactive
+desktop. `Screenshot.ps1` and `GuiAction.ps1` require an interactive
+session, or a service identity/session arrangement that can access the
+desktop. Prefer RDP into the machine before attempting GUI actions.
+
+## Secrets edits lose ACLs
+
+Always use:
+
+```powershell
+pwsh -File .\payload\bin\Secrets-Edit.ps1
 ```
 
-Typical causes:
+If ACLs drift, run:
 
-- Missing provider token. Add one with
-  `sudo /opt/ai-zombie/bin/secrets-edit` (or `sudo secrets-edit`).
-  `doctor` looks for any of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`,
-  `GEMINI_API_KEY`, `XAI_API_KEY`, `OPENROUTER_API_KEY`,
-  `MISTRAL_API_KEY`, or `GROQ_API_KEY`.
-- Port `7878` taken. Override by setting `ZOMBIE_CHAT_PORT` in
-  `secrets/env`; the systemd unit ships `Environment=ZOMBIE_CHAT_PORT=7878`
-  as a fallback so the service still starts when `secrets/env` is
-  missing or empty.
-- Bad permissions on `secrets/env` (see above).
-- `pi-mono` runtime configs missing under `/opt/ai-zombie/pi/`. Run
-  `sudo ./scripts/install.sh repair` to re-render them from the
-  packaged templates.
-
-## "What did the AI just do?"
-
-```bash
-/opt/ai-zombie/bin/audit-recent           # last 25 entries
-/opt/ai-zombie/bin/audit-recent --all     # full log
-/opt/ai-zombie/bin/audit-recent -f        # tail -F, useful during testing
-/opt/ai-zombie/bin/audit-recent -t tool_call -t provider_error  # filter by type
-sudo less /var/log/ubuntu-zombie/audit.log
+```powershell
+pwsh -File scripts/Install.ps1 repair
 ```
 
-`audit-recent` is also reachable on `PATH` as `audit-recent`.
+## Collect diagnostics
 
-For deeper debugging during testing, set `ZOMBIE_AUDIT_VERBOSE=1` on
-the chat service (e.g. via the systemd drop-in or by editing
-`/opt/ai-zombie/secrets/env`) and restart `ubuntu-zombie-chat.service`.
-The scribe will then attach a redacted `stdout_preview` /
-`stderr_preview` (default 2 KiB each, capped at 16 KiB and tunable
-via `ZOMBIE_AUDIT_PREVIEW_BYTES`) to every `tool_call` entry so you
-can read what the AI saw without re-running the command. The
-SHA-256 digests still ship unchanged so the existing integrity
-contract holds. Turn it back off (or unset it) before handing the
-machine over to a long-running operator — verbose mode makes the
-audit log noisier and slightly less privacy-preserving.
-
-Companion shortcuts installed by the installer:
-
-| Symlink                            | Target                                      |
-|------------------------------------|---------------------------------------------|
-| `/usr/local/bin/audit-recent`      | `/opt/ai-zombie/bin/audit-recent`           |
-| `/usr/local/bin/secrets-edit`      | `/opt/ai-zombie/bin/secrets-edit`           |
-| `/usr/local/bin/zombie-chat`       | `/opt/ai-zombie/bin/zombie-chat`            |
-| `/usr/local/bin/zombie-health`     | `/opt/ai-zombie/bin/health-check`           |
-| `/usr/local/bin/zombie-diagnostics`| `/opt/ai-zombie/bin/collect-diagnostics`    |
-
-The audit log is rotated weekly (8 generations kept) by the
-`/etc/logrotate.d/ubuntu-zombie` rule and is created mode `0640`
-owned by the agent user.
-
-## Rolling back to the pre-`pi-mono` chat service
-
-The chat service drives the [`pi-mono`](https://www.npmjs.com/package/@earendil-works/pi-coding-agent)
-agent loop through `payload/agent/pi-mono-bridge.mjs`. The version is
-pinned by `payload/agent/pi-mono.version` and the install snapshots
-`state/conversations.db` before running the additive schema migration.
-To roll back:
-
-1. **Stop the chat service** so nothing writes to history:
-   ```bash
-   sudo systemctl stop ubuntu-zombie-chat.service
-   ```
-2. **Restore the pre-migration snapshot.** The installer copies
-   `state/conversations.db` to `state/conversations.db.bak.<ts>`
-   *before* the chat service runs the migration. Pick the most recent
-   timestamp and restore it:
-   ```bash
-   sudo ls /opt/ai-zombie/state/conversations.db.bak.*
-   sudo cp -a /opt/ai-zombie/state/conversations.db.bak.<ts> \
-              /opt/ai-zombie/state/conversations.db
-   ```
-3. **Pin `pi-mono` to a different release** (or remove it entirely):
-   ```bash
-   sudo npm uninstall -g @earendil-works/pi-coding-agent
-   # or, to roll forward instead of back:
-   sudo npm install -g @earendil-works/pi-coding-agent@<version>
-   ```
-4. **Check out the previous payload** in `git` and re-run
-   `sudo ./scripts/install.sh repair`. The chat service comes back up
-   against the restored DB and the previously pinned binary.
-
-`pi-mono` bridge logs live under
-`/opt/ai-zombie/state/logs/pi-mono.*.log` (one file per service start
-and turn; rotated daily, 14 generations kept by
-`/etc/logrotate.d/ubuntu-zombie`). They are the first thing to inspect
-when an `operator_approval_required` error appears unexpectedly, when
-a `budget_exceeded:` observation is emitted, or when the bridge exits
-without emitting `final`. Per-session scratch space lives under
-`/opt/ai-zombie/state/pi-mono-sessions/`.
-
-## Non-interactive install fails immediately
-
-`ZOMBIE_NONINTERACTIVE=1` requires `SSH_PUBLIC_KEY` and `VNC_PASSWORD`
-to be set when neither is already configured on disk. Exit code `64`
-indicates missing required environment. Exit code `2` indicates a bad
-argument (for example a non-integer `ZOMBIE_CHAT_PORT`); exit code
-`65` indicates an incompatible host, and `66` a network preflight
-failure.
-
-## Collect a diagnostic bundle for a bug report
-
-```bash
-sudo /opt/ai-zombie/bin/collect-diagnostics    # or: sudo zombie-diagnostics
-# produces /tmp/ubuntu-zombie-diagnostics-YYYYMMDD-HHMMSS.tar.gz
+```powershell
+pwsh -File .\payload\bin\Collect-Diagnostics.ps1
 ```
 
-The bundle captures `os-release`, `uname`, disk and memory snapshots,
-`systemctl status` for the chat service and health timer, recent
-journal output for `ubuntu-zombie-chat` and `tailscaled`, `tailscale
-status`, `ufw status verbose`, Docker `version`/`info`, the verify and
-health-check transcripts, the installer log, the (already-redacted)
-audit log, `/etc/ubuntu-zombie/policy.yaml`, and a `dpkg -l` for the
-core packages. Token-shaped values (`sk-…`, `sk-ant-…`, `tskey-…`,
-SSH public keys, `API_KEY`/`TOKEN`/`PASSWORD`/`SECRET` lines) are
-redacted before the bundle is written; please still review the
-contents before sharing.
+Review the bundle before sharing it; remove secrets, private prompts, and
+hostnames as needed.

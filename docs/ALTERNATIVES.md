@@ -1,8 +1,7 @@
-# Alternatives to Ubuntu Zombie
+# Alternatives to Windows 11 Zombie
 
-This catalogue groups the projects in the same neighbourhood as Ubuntu
-Zombie by how closely they overlap with its shape
-(`Ubuntu LTS + root user + private interface + LLM`). See
+This catalogue groups the projects in the same neighbourhood as Windows 11 Zombie by how closely they overlap with its shape
+(`Windows 11 + local administrator + private interface + LLM`). See
 [`ALTERNATIVES-LESSONS.md`](ALTERNATIVES-LESSONS.md) for the rationale
 behind the grouping and the concrete lessons drawn from each project.
 
@@ -13,7 +12,7 @@ actually *operate* the machine rather than just chat about it.
 
 | Project                               | Why it’s relevant                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Missy**                             | Security-first, self-hosted AI assistant for Linux. Default-deny network/filesystem/shell, multi-layer policy engine, Ed25519-signed JSONL audit log, interactive approval TUI, encrypted vault, prompt-injection sanitizer, and code-evolution with git rollback. Probably the closest single-host analog to Ubuntu Zombie. ([GitHub][1]) |
+| **Missy**                             | Security-first, self-hosted AI assistant for Linux. Default-deny network/filesystem/shell, multi-layer policy engine, Ed25519-signed JSONL audit log, interactive approval TUI, encrypted vault, prompt-injection sanitizer, and code-evolution with git rollback. Probably the closest single-host analog to Windows 11 Zombie. ([GitHub][1]) |
 | **LinuxAgent**                        | LLM-driven Linux ops CLI with mandatory human approval, policy engine, SSH guards, runbooks, and audit trails. Very close conceptually. ([GitHub][2])                                                                                                                                                                                      |
 | **SysKnife**                          | Plain-language Linux sysadmin agent: proposes typed actions, requires approval, executes via daemon, includes tamper-evident audit chain. Fedora now, Ubuntu planned. ([GitHub][3])                                                                                                                                                        |
 | **RHEL Lightspeed / sysadmin-agents** | Multi-agent Linux/RHEL troubleshooting system using Google ADK and linux-mcp-server; more diagnostic/SRE than “own the desktop”. ([GitHub][4])                                                                                                                                                                                             |
@@ -33,7 +32,7 @@ the ergonomics they have settled on are directly applicable.
 
 ## Useful building blocks (not products)
 
-Pieces Ubuntu Zombie could *use* or imitate, rather than projects it
+Pieces Windows 11 Zombie could *use* or imitate, rather than projects it
 competes with.
 
 | Project                               | Why it’s relevant                                                                                                                                                                                                       |
@@ -48,7 +47,7 @@ competes with.
 
 These show up in the same searches but optimise for different goals
 (developer-in-a-terminal workflow, or broader personal-assistant
-platforms). Worth knowing about; not the shape Ubuntu Zombie should
+platforms). Worth knowing about; not the shape Windows 11 Zombie should
 drift into.
 
 | Project                               | Why it’s relevant                                                                                                                                                                                                                                                                    |
@@ -59,7 +58,7 @@ drift into.
 | **DuckClaw**                          | Local-first open-source personal AI assistant with explicit permission tiers, action preview, audit logs, and sandboxed skills. Broader than sysadmin but philosophically close. ([duckclawlabs.com][18])                                                                            |
 | **OpenClaw**                          | Self-hosted agentic system that can run scripts, manage files, call APIs, and operate through local gateway tooling; broader operator platform. ([TechRadar][19])                                                                                                                    |
 
-Best direct comparables to **Ubuntu Zombie**: **Missy**, **LinuxAgent**, **SysKnife**, **LinuxOS-AI**, and **RHEL sysadmin-agents** (single-host, root-capable, audited, approval-gated). **Open Interpreter**, **Goose**, **Cline**, and **Butterfish** are the closest general-purpose local-agent comparables; **linux-administration-mcp**, **HumanLayer**, and **Phantasm** are reusable building blocks rather than full products.
+Best direct comparables to **Windows 11 Zombie**: **Missy**, **LinuxAgent**, **SysKnife**, **LinuxOS-AI**, and **RHEL sysadmin-agents** (single-host, root-capable, audited, approval-gated). **Open Interpreter**, **Goose**, **Cline**, and **Butterfish** are the closest general-purpose local-agent comparables; **linux-administration-mcp**, **HumanLayer**, and **Phantasm** are reusable building blocks rather than full products.
 
 [1]: https://github.com/MissyLabs/missy "GitHub - MissyLabs/missy: Security-first, self-hosted AI assistant for Linux"
 [2]: https://github.com/Eilen6316/LinuxAgent "GitHub - Eilen6316/LinuxAgent: LLM-driven Linux operations assistant CLI with mandatory HITL safety, policy engine, runbooks, SSH guards, and audit trails. · GitHub"

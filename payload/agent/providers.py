@@ -19,7 +19,7 @@ this file). The bridge is a small Node script that loads
 
 Supported providers (set ``ZOMBIE_PROVIDER`` to one of the names on
 the left and supply the matching API key in
-``/opt/ai-zombie/secrets/env``)::
+``%ProgramData%\\AiZombie\\secrets\\env``)::
 
     openai      OPENAI_API_KEY
     anthropic   ANTHROPIC_API_KEY
@@ -240,7 +240,7 @@ class BaseProvider:
         if not chosen:
             raise NoProviderConfigured(
                 f"{spec.name} requires a model id. Set ZOMBIE_MODEL in "
-                "/opt/ai-zombie/secrets/env (e.g. "
+                "the secrets file (e.g. "
                 "ZOMBIE_MODEL=anthropic/claude-3.5-sonnet for openrouter)."
             )
         self.model = chosen
@@ -302,6 +302,6 @@ def provider_from_env(name: str | None = None,
     keys = ", ".join(spec.key_env for spec in _PI_AI_PROVIDERS)
     raise NoProviderConfigured(
         "No provider API key found. Set one of "
-        f"{keys} in /opt/ai-zombie/secrets/env and restart "
-        "ubuntu-zombie-chat.service."
+        f"{keys} in the windows11-zombie secrets file and restart "
+        "the Windows11Zombie-Chat service."
     )

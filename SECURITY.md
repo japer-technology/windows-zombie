@@ -1,145 +1,97 @@
-# Security
+# Security policy
 
-Ubuntu Zombie installs a privileged AI Systems Administrator on a
-normal Ubuntu PC. This is a meaningful security posture and you should
-read it before running the installer.
+Windows 11 Zombie deliberately installs a powerful local AI administrator.
+Treat every deployment as privileged infrastructure, not a toy chatbot.
 
-## Trust boundary
+## Supported platform
 
-The operator owns:
+Security guidance applies to Windows 11 22H2+ Pro or Enterprise. Windows
+11 Home can run the project, but Group Policy and some firewall profile
+features are reduced.
 
-- the physical machine,
-- the SSH private key,
-- the Tailscale account,
-- the LLM provider account and API key,
-- `/opt/ai-zombie/secrets/env`.
+## Trust model
 
-The token provider (cloud LLM vendor) authenticates the AI Systems
-Administrator. The provider does **not** own the machine.
+The service runs as `LocalSystem` by default because it is simple and
+reliable for Windows Services. The installer also creates a local
+Administrators account named `zombie`; operators may switch the service to
+that account for closer parity with a dedicated admin identity:
 
-The `agent` Linux user is the operating identity of the AI Systems
-Administrator. `agent` holds passwordless `sudo` and is in the
-`docker` group. Any compromise of `agent`, of the provider API key,
-or of the SSH private key is equivalent to root on the machine.
+```powershell
+sc.exe config Windows11Zombie-Chat obj= .\zombie password= <password>
+Restart-Service Windows11Zombie-Chat
+```
 
-Treat these four credentials with root-level care:
+`LocalSystem` has broad machine privileges and no normal user profile.
+The `zombie` account has a clearer identity and ACL target, but still has
+administrator rights. In both modes, the **policy engine is the only
+privilege gate**. Windows has no Linux-style per-command elevation prompt in this
+architecture.
 
-- the SSH private key authorised in `~agent/.ssh/authorized_keys`;
-- the LLM provider API key in `/opt/ai-zombie/secrets/env`;
-- the Tailscale account and tailnet;
-- the VNC password (loopback-only but still a credential).
+## Policy and audit
 
-## What the provider sees
+`payload/etc/policy.yaml` classifies tools and commands. Read-only
+diagnostics may auto-run. Mutating actions require operator approval.
+Destructive actions require an explicit confirmation phrase. Any new
+privileged behaviour must be routed through `payload/agent/policy.py` and
+logged by `payload/agent/audit.py`.
 
-The chat service sends to the provider:
+Audit logs are JSONL files under `C:\ProgramData\AiZombie\logs\`. The
+agent performs built-in size+count rotation; there is no Event Log mirror
+by default and no Windows `built-in size+count log rotation`. Protect and back up these files if
+you rely on them for accountability.
 
-- the operator's typed prompts;
-- the current conversation history;
-- selected local context (e.g. `uname`, package versions, summarised
-  command output) that the assistant explicitly chose to include.
+## Secrets
 
-The provider may see, in summarised form, the **output** of commands
-the assistant runs on the machine. Treat the provider as a third
-party with read access to whatever local state the assistant decides
-to share with it.
+Default secrets live in plaintext at:
 
-The provider does not see:
+```text
+C:\ProgramData\AiZombie\secrets\env
+```
 
-- the LLM API key beyond your own account scope;
-- the SSH private key;
-- the VNC password;
-- the Tailscale auth key;
-- files under `/opt/ai-zombie/secrets/`;
-- audit log contents (the audit log is local-only).
+The installer disables inheritance and grants FullControl only to
+`BUILTIN\Administrators`, `NT AUTHORITY\SYSTEM`, and `zombie`. Edit the
+file with `payload/bin/Secrets-Edit.ps1`; it re-applies ACLs and writes a
+SHA-256 audit entry.
 
-## What the `agent` user can do
-
-- Run any command as root via `sudo`, without a password prompt.
-- Read and write any file the desktop session can reach.
-- Drive Xorg via `xdotool`, screenshot via `gnome-screenshot`/`scrot`.
-- Operate Chromium through Playwright.
-- Manage Docker images, containers, networks, and volumes.
-- Listen on `127.0.0.1` for the chat UI.
-
-The MVP adds a policy gate (`/etc/ubuntu-zombie/policy.yaml`) and an
-approval flow between the AI and `sudo`. Read-only diagnostics run
-automatically; everything else requires approval; destructive actions
-require a confirmation phrase. See `ARCHITECTURE.md` for the classes.
+DPAPI encryption is a stronger future option and can be adopted by
+operators who need host-bound secret protection. The default remains
+ACL-protected plaintext for operational transparency and parity with the
+legacy `0640` model.
 
 ## Network exposure
 
-- UFW default: deny inbound, allow outbound.
-- SSH (port 22): allowed on `tailscale0` only.
-- VNC (port 5900): bound to `127.0.0.1` only.
-- Chat (default port 7878): bound to `127.0.0.1` only.
-- Tailscale SSH (`tailscale up --ssh`) is **not** enabled by the
-  installer; ingress goes through the standard `sshd` so audit
-  trails follow Ubuntu conventions.
+The chat UI binds to `127.0.0.1:7878`. Windows loopback is local-only, and
+the installer also creates Defender Firewall rules in the `Windows11
+Zombie` group to deny that port from non-loopback interfaces.
 
-To use the chat or VNC remotely, SSH-tunnel the port over Tailscale.
+Recommended remote access posture:
 
-## Rotating credentials
+- enable RDP only with Network Level Authentication (NLA);
+- restrict RDP (`3389`) and optional OpenSSH (`22`) to the Tailscale
+  interface or trusted management networks;
+- run `& 'C:\Program Files\Tailscale\tailscale.exe' up` from an elevated
+  shell and verify the Tailscale Windows service is running;
+- never expose the chat port directly to a LAN or the Internet.
 
-| Credential          | How to rotate                                   |
-| ------------------- | ----------------------------------------------- |
-| LLM provider key    | `sudo /opt/ai-zombie/bin/secrets-edit`, then `systemctl restart ubuntu-zombie-chat` |
-| SSH public key      | Edit `~agent/.ssh/authorized_keys`, then `systemctl restart ssh` |
-| Tailscale enrolment | `sudo tailscale logout && sudo tailscale up`   |
-| VNC password        | `sudo -u agent x11vnc -storepasswd`             |
+## Windows security features
 
-## Revoking the agent
+Defender SmartScreen, Microsoft Defender Antivirus, Controlled Folder
+Access, and Tamper Protection may block unsigned scripts, downloaded ZIPs,
+Python runtimes, or agent subprocesses. Prefer narrowly scoped allow rules
+for the repository checkout and `C:\ProgramData\AiZombie\` over disabling
+protection globally. Document any allow rule in your local change log.
 
-Minimum: remove every provider API key, then restart the chat
-service. The chat will load but refuse to reach a provider.
+## Reporting vulnerabilities
 
-Stronger: `sudo systemctl disable --now ubuntu-zombie-chat.service`.
+Please report suspected vulnerabilities privately through the repository's
+security advisory workflow or the maintainer contact listed on GitHub. Do
+not open a public issue with exploit details, secrets, or logs containing
+private prompts.
 
-Strongest: `sudo ./scripts/install.sh uninstall`. The uninstaller removes
-the chat service, sudoers drop-in, SSH drop-in, x11vnc autostart, and
-generated helpers, optionally removing the `agent` user and archiving
-state.
+Useful reports include:
 
-## Known risks
-
-- **Passwordless sudo.** Intentional, but it means compromise of
-  `agent` is compromise of root. Mitigated by Tailscale-only ingress,
-  key-only SSH, policy gate, and audit logging.
-- **Docker group access.** `agent` is in `docker`, which is
-  effectively root. The policy classifies `docker` commands as
-  `system_change` or `destructive` depending on the verb.
-- **Desktop automation.** With autologin disabled (the default), the
-  desktop session must be unlocked before `xdotool` works. With
-  `ZOMBIE_ENABLE_AUTOLOGIN=1`, anyone with physical access has a
-  pre-unlocked desktop. Do not enable autologin on portable machines
-  unless you understand the trade-off.
-- **VNC.** Even on `127.0.0.1`, anyone who can reach the loopback
-  socket (i.e. has shell access on the box) can drive the desktop.
-- **Cloud provider trust.** Prompts and selected machine state cross
-  to the provider. Sensitive files should not be opened or summarised
-  through the chat.
-- **API cost.** Long sessions can become expensive. The first-run UI
-  warns about this.
-- **Provider prompt injection.** The provider's output is executed
-  only through the approval gate; review proposed commands before
-  approving.
-
-## Audit and observability
-
-- `/var/log/ubuntu-zombie/audit.log` — JSON-lines record of prompts,
-  proposed actions, approvals, commands, exit codes, and verification
-  results. Rotated by `logrotate`. Secrets are redacted at write
-  time.
-- `/opt/ai-zombie/bin/audit-recent` — quick view of recent activity.
-- `/opt/ai-zombie/bin/health-check` — one-shot health summary.
-- `/opt/ai-zombie/bin/collect-diagnostics` — bundle for bug reports;
-  secrets are redacted.
-
-## Responsible disclosure
-
-Please report security issues privately to the maintainers of this
-repository via a GitHub Security Advisory:
-
-<https://github.com/japer-technology/ubuntu-zombie/security/advisories/new>
-
-Do not file public issues for vulnerabilities. A 90-day coordinated
-disclosure window is the default.
+- the affected version or commit;
+- whether the service ran as `LocalSystem` or `zombie`;
+- relevant policy snippets;
+- sanitized audit entries;
+- reproduction steps on Windows 11.

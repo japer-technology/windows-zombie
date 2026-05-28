@@ -1,6 +1,6 @@
 """Policy gate.
 
-Reads ``/etc/ubuntu-zombie/policy.yaml`` (or ``$ZOMBIE_POLICY``) on
+Reads ``%ProgramData%\\AiZombie\\etc\\policy.yaml`` (or ``$ZOMBIE_POLICY``) on
 every classification so the operator can edit it without restarting
 the chat service.
 
@@ -24,7 +24,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
-POLICY_PATH = Path(os.environ.get("ZOMBIE_POLICY", "/etc/ubuntu-zombie/policy.yaml"))
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+import paths as _paths  # noqa: E402
+
+POLICY_PATH = _paths.policy_path()
 
 # Ordered low → high severity. ``_max_class`` exploits the index.
 CLASS_ORDER = (
