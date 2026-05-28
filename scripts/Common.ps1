@@ -224,6 +224,11 @@ function Ensure-AgentAccount {
 }
 
 function New-RandomPassword {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSAvoidUsingConvertToSecureStringWithPlainText', '',
+        Justification = 'The plaintext is generated locally in this function from a CSPRNG, is never persisted or displayed, and must be wrapped as a SecureString for New-LocalUser.')]
+    [CmdletBinding()]
+    param()
     Add-Type -AssemblyName System.Web -ErrorAction SilentlyContinue
     try {
         $plain = [System.Web.Security.Membership]::GeneratePassword(32, 6)

@@ -7,7 +7,7 @@
 param()
 
 $port = if ($env:ZOMBIE_CHAT_PORT) { $env:ZOMBIE_CHAT_PORT } else { 7878 }
-$host = [System.Net.Dns]::GetHostName()
+$hostName = [System.Net.Dns]::GetHostName()
 $installRoot = if ($env:AI_ZOMBIE_ROOT) { $env:AI_ZOMBIE_ROOT } else { Join-Path $env:ProgramData 'AiZombie' }
 
 @"
@@ -18,9 +18,9 @@ Local URL:
   http://127.0.0.1:$port/
 
 Remote (from a device on your Tailscale network):
-  ssh -L ${port}:127.0.0.1:${port} zombie@$host
+  ssh -L ${port}:127.0.0.1:${port} zombie@$hostName
   # then open http://127.0.0.1:$port/ in your local browser
-  # — or use Remote Desktop: mstsc /v:$host:3389
+  # — or use Remote Desktop: mstsc /v:$hostName:3389
 
 Service control (run from an elevated shell):
   Get-Service Windows11Zombie-Chat
