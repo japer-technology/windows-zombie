@@ -13,7 +13,7 @@
 </p>
 
 > **Windows Zombie adds a private, policy-gated AI Systems
-> Administrator to Microsoft Windows 11.** It installs a local chat
+> Administrator to Microsoft Windows 10 and 11.** It installs a local chat
 > daemon, a portable Python/Node agent runtime, Windows Service
 > supervision, Defender Firewall rules, and ACL-protected state under
 > `C:\ProgramData\AiZombie\`.
@@ -29,7 +29,7 @@ explicit operator approval for anything mutating and a confirmation
 phrase for anything destructive. The chat UI is loopback-only; the
 only outbound traffic is to the provider you chose.
 
-The project targets **Windows 11 22H2+ Pro or Enterprise**. Windows 11
+The project targets **Windows 10 22H2 or Windows 11 22H2+ Pro or Enterprise**. Windows 10/11
 Home can run the agent, but Group Policy and some firewall profile controls
 are reduced. The service runs as `LocalSystem` by default, while the
 installer also creates a local Administrators account named `zombie` for
@@ -67,7 +67,7 @@ The agent rotates JSONL audit logs itself under `logs\`.
 
 ## Requirements
 
-- Windows 11 22H2+ Pro or Enterprise recommended.
+- Windows 10 22H2 or Windows 11 22H2+ Pro or Enterprise recommended.
 - PowerShell 7+ (`pwsh`) for normal operation. Windows PowerShell 5.1 is
   supported only for bootstrap compatibility.
 - WinGet / App Installer 1.6+.
@@ -161,7 +161,7 @@ pwsh -File build.ps1 package
 
 Do not run the installer, uninstaller, or service helpers on a workstation
 you are not prepared to modify. Use Windows Sandbox, a disposable Hyper-V
-VM, or another throwaway Windows 11 test machine.
+VM, or another throwaway Windows 10/11 test machine.
 
 See `docs/QUICKSTART.md`, `docs/CONFIGURATION.md`,
 `docs/ARCHITECTURE.md`, and `SECURITY.md` for deeper operational details.

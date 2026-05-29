@@ -15,7 +15,7 @@ tool call is dispatched through this module:
   the rest of the codebase keeps its existing invariants.
 
 The shapes intentionally avoid pulling in jsonschema or pydantic;
-operators install Windows Zombie on stock Windows 11 and the agent
+operators install Windows Zombie on stock Windows 10 or Windows 11 and the agent
 venv should not gain third-party deps just to gate a dozen calls.
 """
 from __future__ import annotations

@@ -8,8 +8,8 @@
     <projectUrl>https://github.com/japer-technology/windows-zombie</projectUrl>
     <licenseUrl>https://github.com/japer-technology/windows-zombie/blob/main/LICENSE</licenseUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Local AI sysadmin agent for Windows 11.</description>
-    <summary>Local AI sysadmin agent for Windows 11.</summary>
+    <description>Local AI sysadmin agent for Windows 10 and 11.</description>
+    <summary>Local AI sysadmin agent for Windows 10 and 11.</summary>
     <tags>sysadmin ai automation windows admin</tags>
     <bugTrackerUrl>https://github.com/japer-technology/windows-zombie/issues</bugTrackerUrl>
     <docsUrl>https://github.com/japer-technology/windows-zombie/tree/main/docs</docsUrl>

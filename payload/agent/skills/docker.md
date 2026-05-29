@@ -1,12 +1,12 @@
 <!-- triggers: docker, container, compose, dockerd, image, podman, wsl -->
-# Skill: Docker Desktop on Windows 11
+# Skill: Docker Desktop on Windows 10/11
 
 This skill is loaded when the operator mentions Docker, containers,
 images, Compose, or WSL.
 
 Operating rules:
 
-- Docker on Windows 11 runs via Docker Desktop (which uses WSL2 or
+- Docker on Windows 10/11 runs via Docker Desktop (which uses WSL2 or
   Hyper-V). Docker Desktop has its own licensing — confirm with the
   operator that their use is permitted before suggesting an install.
   Podman Desktop is a license-free alternative; do not install either

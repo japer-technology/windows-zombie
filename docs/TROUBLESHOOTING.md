@@ -95,7 +95,7 @@ network state.
 
 `New-LocalUser` and `Add-LocalGroupMember` require Windows PowerShell 5.1+
 or PowerShell 7 on Windows. They are unavailable on non-Windows hosts and
-some constrained enterprise images. Use a standard Windows 11 Pro or
+some constrained enterprise images. Use a standard Windows 10/11 Pro or
 Enterprise VM for install testing.
 
 ## GUI tools do not render

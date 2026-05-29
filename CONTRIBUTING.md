@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for improving windows-zombie. The project is a Windows 11
+Thank you for improving windows-zombie. The project is a Windows 10/11
 installer plus a portable Python/Node agent runtime, so changes should be
 small, reviewable, and safe to validate on disposable Windows machines.
 
@@ -18,7 +18,7 @@ pwsh -File build.ps1 package
 `lint` parses PowerShell, compiles Python, and parses `policy.yaml`.
 `test` runs `tests/Smoke.ps1 all`. CI runs on `windows-latest`.
 
-Use Windows Sandbox, a Hyper-V VM, or another throwaway Windows 11 22H2+
+Use Windows Sandbox, a Hyper-V VM, or another throwaway Windows 10 22H2 or Windows 11 22H2+
 Pro/Enterprise machine for real installs. Do not run the installer or
 uninstaller on a machine you are not prepared to modify.
 

@@ -2,7 +2,7 @@
   <!--
     Windows Sandbox configuration that mounts this repository read-only at
     C:\windows-zombie-src and launches Install.ps1 install inside the
-    ephemeral VM. Open this file with a double click on Windows 11 Pro /
+    ephemeral VM. Open this file with a double click on Windows 10/11 Pro /
     Enterprise with the "Windows Sandbox" optional feature enabled.
 
     The sandbox is wiped on close — perfect for kicking the tyres without

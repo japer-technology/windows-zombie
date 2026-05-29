@@ -1,7 +1,7 @@
 # Deploying windows-zombie via Microsoft Intune
 
 This guide packages windows-zombie as a Win32 app for Microsoft
-Intune so it can be deployed to Azure AD–joined Windows 11 devices.
+Intune so it can be deployed to Azure AD–joined Windows 10 and Windows 11 devices.
 
 ## 1. Prepare the source folder
 
@@ -29,7 +29,7 @@ IntuneWinAppUtil.exe -c intune-stage -s scripts\Install.ps1 -o dist
 | Device restart behaviour | No specific action |
 | Detection rule | File: `C:\ProgramData\AiZombie\bin\windows-zombie.cmd` exists |
 | Return codes | 0 = success, 3010 = soft reboot |
-| Requirements | OS edition: Windows 11 Pro / Ent / Edu; 64-bit; PowerShell 7 |
+| Requirements | OS edition: Windows 10/11 Pro / Ent / Edu; 64-bit; PowerShell 7 |
 
 ## 4. Assignments
 

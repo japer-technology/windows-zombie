@@ -34,6 +34,41 @@ The installer:
 User data (`secrets\env`, `state\conversations.db`,
 `etc\policy.yaml`, `etc\skills.d\`) is left untouched.
 
+## Migrating from `windows11-zombie` (the rename)
+
+The project was renamed from `windows11-zombie` to `windows-zombie` when
+it became a dual-target (Windows 10 **and** Windows 11) product. The
+rename only affects **externally named OS resources**, not your data:
+
+| Resource | Old name | New name |
+| --- | --- | --- |
+| Chat service | `Windows11Zombie-Chat` | `WindowsZombie-Chat` |
+| Health task | `Windows11Zombie-Health` | `WindowsZombie-Health` |
+| Backup task | `Windows11Zombie-Backup` | `WindowsZombie-Backup` |
+| Firewall group | `Windows11 Zombie` | `Windows Zombie` |
+| PATH shim | `windows11-zombie.cmd` | `windows-zombie.cmd` |
+
+The install tree (`C:\ProgramData\AiZombie\`) and all user data are
+**unchanged** — only the path-independent identifiers move.
+
+No manual steps are required. `Install.ps1 install` (and `repair`) call
+`Remove-LegacyServiceArtifact`, which stops and deletes the legacy
+`Windows11Zombie-*` service, scheduled tasks, and firewall rule/group
+before recreating them under the new `WindowsZombie-*` names. The
+migration is idempotent and a no-op on clean machines or on hosts already
+running the renamed build:
+
+```powershell
+# From an elevated session, after pulling the renamed revision:
+pwsh -File scripts/Install.ps1 install
+pwsh -File scripts/Install.ps1 verify
+Restart-Service WindowsZombie-Chat
+```
+
+If you prefer a clean cut, you can uninstall the old build first
+(`pwsh -File scripts/Uninstall.ps1 -AssumeYes` from the previous
+checkout), then install the renamed build; the result is identical.
+
 ## Rollback
 
 If the new version misbehaves:

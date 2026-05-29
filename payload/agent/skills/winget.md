@@ -1,5 +1,5 @@
 <!-- triggers: winget, package, install, uninstall, upgrade, msi, msstore -->
-# Skill: WinGet package management on Windows 11
+# Skill: WinGet package management on Windows 10/11
 
 This skill is loaded when the operator's recent prompts mention WinGet,
 package installs, MSI/MSStore sources, or related package terms.

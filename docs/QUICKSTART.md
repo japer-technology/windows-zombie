@@ -1,6 +1,6 @@
 # Quickstart
 
-This guide installs windows-zombie on a Windows 11 PC.
+This guide installs windows-zombie on a Windows 10 or Windows 11 PC.
 
 ## 1. Start an elevated shell
 

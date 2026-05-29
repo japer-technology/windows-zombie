@@ -7,7 +7,7 @@ Windows-specific details an autonomous agent is most likely to get wrong.
 ## What this repository is
 
 Windows Zombie is a PowerShell + Python/Node installer that adds a
-private, policy-gated AI Systems Administrator to a Windows 11 PC. The OS
+private, policy-gated AI Systems Administrator to a Windows 10 or Windows 11 PC. The OS
 integration layer is Windows Services, Scheduled Tasks, Defender Firewall,
 WinGet, local users/groups, and ACL-protected files under
 `C:\ProgramData\AiZombie\`. The portable agent runtime remains under
@@ -54,7 +54,7 @@ pwsh -File build.ps1 package
 ```
 
 The real installer must be run from an elevated PowerShell session on a
-disposable Windows 11 machine:
+disposable Windows 10/11 machine:
 
 ```powershell
 pwsh -File scripts/Install.ps1 install

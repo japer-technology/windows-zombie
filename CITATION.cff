@@ -10,7 +10,7 @@ authors:
 repository-code: https://github.com/japer-technology/windows-zombie
 abstract: >-
   A private, policy-gated local AI Systems Administrator for
-  Microsoft Windows 11. Installs a loopback-only chat daemon, a
+  Microsoft Windows 10 and 11. Installs a loopback-only chat daemon, a
   portable Python/Node agent runtime, a Windows Service supervisor,
   Defender Firewall rules, and an ACL-protected state tree under
   C:\ProgramData\AiZombie\.

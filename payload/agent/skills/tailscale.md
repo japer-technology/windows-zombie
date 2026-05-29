@@ -1,5 +1,5 @@
 <!-- triggers: tailscale, tailnet, magicdns, tailscaled -->
-# Skill: Tailscale (tailnet membership and status) on Windows 11
+# Skill: Tailscale (tailnet membership and status) on Windows 10/11
 
 This skill is loaded when the operator mentions Tailscale, the tailnet,
 or related networking terms.

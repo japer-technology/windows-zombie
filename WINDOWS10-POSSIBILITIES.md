@@ -1,17 +1,29 @@
 # Windows 10 possibilities
 
+> **✅ Implementation status (done).** This analysis has now been acted
+> on. The project was renamed from `windows11-zombie` to `windows-zombie`,
+> the single OS gate was generalised to `Assert-SupportedWindows` (floor
+> Windows 10 1809 / build 17763), the service/task/firewall/PATH-shim
+> identifiers were renamed to their version-neutral `WindowsZombie-*`
+> forms with an automatic migration step, and the docs, skills, and
+> agent system prompt now describe a "Windows 10 or Windows 11" target.
+> See [`CHANGELOG.md`](CHANGELOG.md), [`docs/UPGRADE.md`](docs/UPGRADE.md),
+> and [`docs/REQUIRES.md`](docs/REQUIRES.md). The remainder of this
+> document is retained as the design rationale for that work.
+
 > Could `windows-zombie` be modified to operate on **both Windows 10
 > and Windows 11**? Short answer: **yes, with modest, well-contained
 > changes.** Nothing in the design depends on a Windows 11-only kernel
-> feature. The "11" in the name is a target and a default, not a hard
-> technical requirement. This document maps every Windows-version
+> feature. The "11" in the original name was a target and a default, not a
+> hard technical requirement. This document maps every Windows-version
 > assumption in the repository and rates how much work each one would
 > take to make dual-target.
 
-This is an analysis document, not a commitment. It does not change any
-behaviour. See [`docs/REQUIRES.md`](docs/REQUIRES.md) for the current,
-authoritative requirements and [`ROADMAP.md`](ROADMAP.md) for what is
-actually planned.
+This began as an analysis document. The **Small** and **Medium** tiers
+below (the functional OS gate and the doc/prompt sweep) plus the optional
+**rename** have since been implemented. See
+[`docs/REQUIRES.md`](docs/REQUIRES.md) for the current, authoritative
+requirements and [`ROADMAP.md`](ROADMAP.md) for what is planned next.
 
 ## TL;DR feasibility
 
@@ -59,87 +71,87 @@ Windows 10" is mostly about *removing an artificial assumption*, not
 
 ## The one real gate
 
-`scripts/Common.ps1` defines `Assert-Windows11`, called from
-`scripts/Install.ps1`. Today it:
+`scripts/Common.ps1` originally defined `Assert-Windows11`, called from
+`scripts/Install.ps1`. It used to:
 
-- throws if the OS caption does not contain `Windows`; and
-- only **warns** (does not block) when the build is `< 22000`.
+- throw if the OS caption did not contain `Windows`; and
+- only **warn** (not block) when the build was `< 22000`.
 
-So the installer already *runs* on Windows 10 — it just prints a
-"supported target" warning. To make Windows 10 a first-class target you
-would:
+So the installer already *ran* on Windows 10 — it just printed a
+"supported target" warning. To make Windows 10 a first-class target the
+implemented change was to:
 
-1. Rename/generalise the check (e.g. `Assert-SupportedWindows`) and set a
+1. Rename/generalise the check to `Assert-SupportedWindows` and set a
    real floor that includes Windows 10 (build `>= 17763`, i.e. 1809, the
    first release with modern WinGet/App Installer and stable
    `New-NetFirewallRule` behaviour).
 2. Keep a soft warning for builds below the tested floor rather than a
-   hard throw, preserving today's lenient posture.
+   hard throw, preserving the lenient posture.
 
-This is a small, localised change with existing test coverage under
-`tests/` to extend.
+This was a small, localised change with test coverage extended under
+`tests/Pester/Common.Tests.ps1`.
 
 ## Version-specific assumptions inventory
 
-These are the concrete places that mention or assume Windows 11. Most are
-cosmetic.
+These were the concrete places that mentioned or assumed Windows 11.
+Most were cosmetic; all have now been addressed.
 
 - **Functional**
-  - `scripts/Common.ps1` — `Assert-Windows11` build floor (the one gate
-    above).
-- **Detection (already dual-aware)**
-  - `payload/agent/server.py` — `machine_facts()` *already* labels
-    Windows 10 vs 11 from the build number for the system prompt. No
-    change needed; it is evidence the codebase anticipated this.
-- **Docs and prompts (cosmetic)**
+  - `scripts/Common.ps1` — the build-floor gate (now
+    `Assert-SupportedWindows`, with `Assert-Windows11` kept as an alias).
+- **Detection (now build-accurate)**
+  - `payload/agent/server.py` — `machine_facts()` labels Windows 10 vs 11
+    from the build number (>= 22000 is Windows 11) for the system prompt.
+- **Docs and prompts**
   - `README.md`, `docs/REQUIRES.md`, `docs/FAQ.md`,
     `docs/QUICKSTART.md`, and the skills under
-    `payload/agent/skills/` say "Windows 11".
+    `payload/agent/skills/` now say "Windows 10 or Windows 11".
   - `payload/agent/templates/APPEND_SYSTEM.md.tmpl` and the inline
-    `APPEND_SYSTEM_TEMPLATE` in `server.py` tell the model it administers
-    "a Microsoft Windows 11 machine".
-- **Branding and packaging (cosmetic but wide-reaching)**
+    `APPEND_SYSTEM_TEMPLATE` in `server.py` now tell the model it
+    administers "a Microsoft Windows 10 or Windows 11 machine".
+- **Branding and packaging (renamed)**
   - Repo name, service names (`WindowsZombie-Chat`,
     `WindowsZombie-Health`), the `windows-zombie.cmd` shim, event-log
     source `WindowsZombie-Chat`, firewall group, and the manifests
     under `packaging/` all carry "11" in identifiers.
 
-## What would actually change, by effort
+## What changed, by effort (all completed)
 
-### Small — make it *work* on Windows 10
+### Small — make it *work* on Windows 10 ✅
 
-- Generalise `Assert-Windows11` to a supported-range check with a
-  sensible floor (1809) and keep warnings soft.
-- Extend the relevant tests in `tests/` to cover a Windows 10 build
-  number.
-- Add a short "Windows 10" note to `docs/REQUIRES.md` and `docs/FAQ.md`.
+- Generalised `Assert-Windows11` into `Assert-SupportedWindows`, a
+  supported-range check with a sensible floor (1809 / 17763) and soft
+  warnings.
+- Extended `tests/Pester/Common.Tests.ps1` to cover the gate, the alias,
+  and the build floor.
+- Added a "Windows 10" note to `docs/REQUIRES.md` and `docs/FAQ.md`.
 
-With just this, the product is functional on Windows 10 today; the rest
-is polish.
+With this the product is functional on Windows 10; the rest is polish.
 
-### Medium — make it *feel* dual-target
+### Medium — make it *feel* dual-target ✅
 
-- Sweep the docs and the system-prompt templates to say "Windows 10/11"
-  (or "modern Windows") instead of "Windows 11", including the skills.
-- Verify the Windows Sandbox recipe note
-  ([`examples/sandbox/`](examples/sandbox/)) — Sandbox needs Win10 Pro
-  1903+; the `.wsb` itself is unchanged.
-- Confirm WinGet wording: App Installer ships on Win10 1809+ but older
-  images may need a Microsoft Store update; the existing choco fallback
-  in `Common.ps1` already covers hosts without WinGet.
+- Swept the docs and the system-prompt templates to say
+  "Windows 10 or Windows 11" instead of "Windows 11", including the skills.
+- The Windows Sandbox recipe note
+  ([`examples/sandbox/`](examples/sandbox/)) calls out Win10 Pro 1903+;
+  the `.wsb` itself is unchanged.
+- WinGet wording: App Installer ships on Win10 1809+ but older images may
+  need a Microsoft Store update; the existing choco fallback in
+  `Common.ps1` already covers hosts without WinGet.
 
-### Larger — rename for a neutral identity (optional)
+### Larger — rename for a neutral identity ✅
 
-Only needed if the *brand* should stop implying "11". This is the most
-invasive option because identifiers are externally visible:
+The *brand* no longer implies "11". Because identifiers are externally
+visible, the rename was paired with an automatic migration:
 
 - Service names, event-log source, the PATH shim, firewall group, and
-  packaging IDs would change, which affects upgrade/migration paths
-  (`docs/UPGRADE.md`) and any deployed fleet.
-- The repository name itself is referenced throughout docs and badges.
-- This is purely a naming decision; it adds no Windows 10 capability and
-  can be deferred or skipped. Renaming a shipped service requires a
-  migration step so existing installs are not orphaned.
+  packaging IDs moved to their `WindowsZombie-*` / `windows-zombie` forms.
+  `Remove-LegacyServiceArtifact` migrates existing installs (see
+  [`docs/UPGRADE.md`](docs/UPGRADE.md)) so none are orphaned.
+- The repository name itself (`windows-zombie`) and all docs/badges were
+  updated.
+- This was purely a naming decision; it adds no Windows 10 capability but
+  gives the dual-target product a coherent identity.
 
 ## Risks and caveats
 

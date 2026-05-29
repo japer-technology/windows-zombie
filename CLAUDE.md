@@ -5,7 +5,7 @@ This repository uses a single source of truth for AI-agent guidance:
 
 Quick reminders:
 
-- The project is **windows-zombie**, a Windows 11 installer and agent
+- The project is **windows-zombie**, a Windows 10/11 installer and agent
   runtime. Use PowerShell, Windows Services, Scheduled Tasks, Defender
   Firewall, WinGet, and ACL terminology.
 - Run `pwsh -File build.ps1 lint` and `pwsh -File build.ps1 test` after

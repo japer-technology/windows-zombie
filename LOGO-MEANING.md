@@ -1,7 +1,7 @@
 # Logo meaning
 
 The Windows Zombie logo keeps the skull-and-robot idea from the earlier
-project while moving the visual language to a Windows 11 desktop.
+project while moving the visual language to a Windows 10/11 desktop.
 
 ## Core symbols
 
@@ -10,7 +10,7 @@ project while moving the visual language to a Windows 11 desktop.
   hide the risk.
 - **Robot/AI face:** the service is conversational and tool-using rather
   than a silent background script.
-- **Four-pane window glyph:** the Windows 11 environment is the product
+- **Four-pane window glyph:** the Windows 10/11 environment is the product
   surface: Services, Scheduled Tasks, Defender Firewall, RDP, WinGet, and
   `C:\ProgramData\AiZombie\`.
 - **Windows blue:** blue gradients replace the former Linux colour story.
@@ -27,7 +27,7 @@ must stay in charge.
 
 ## Visual guidance
 
-Use a restrained Windows 11 idiom:
+Use a restrained Windows 10/11 idiom:
 
 - cool blue panes or glow accents;
 - square/rounded window geometry;

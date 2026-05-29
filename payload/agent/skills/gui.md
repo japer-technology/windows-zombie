@@ -1,5 +1,5 @@
 <!-- triggers: gui, screenshot, click, type, keyboard, mouse, desktop, rdp, mstsc, sendkeys -->
-# Skill: GUI control on the Windows 11 desktop
+# Skill: GUI control on the Windows 10/11 desktop
 
 This skill is loaded when the operator asks for screenshots,
 mouse/keyboard automation, or anything else that touches the Windows

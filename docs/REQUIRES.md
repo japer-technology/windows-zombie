@@ -2,10 +2,26 @@
 
 ## Operating system
 
-- Windows 11 22H2+ Pro or Enterprise recommended.
-- Windows 11 Home is supported with caveats: Group Policy and some
-  firewall profile controls are reduced.
-- Use Windows Sandbox, Hyper-V, or another disposable VM for install tests.
+`windows-zombie` is a dual-target project: it supports **both Windows 10
+and Windows 11** from a single codebase. None of the privileged surfaces
+it uses (Windows Services, Scheduled Tasks, Defender Firewall, NTFS ACLs,
+WinGet) are Windows 11-only.
+
+- **Supported range:** Windows 10 build 17763 (version 1809) and newer,
+  through Windows 11. The installer enforces this as a soft, warn-only
+  floor — older builds print a warning but are not hard-blocked.
+- **Recommended:** Windows 10 22H2 or Windows 11 22H2+ Pro or Enterprise.
+- Windows 10/11 Home is supported with caveats: Group Policy and some
+  firewall profile controls are reduced. This is an *edition* limitation,
+  not a *version* one — it applies equally to Windows 10 Home and
+  Windows 11 Home.
+- Use Windows Sandbox (Windows 10 Pro 1903+ / Windows 11 Pro), Hyper-V,
+  or another disposable VM for install tests.
+
+> **Note on end-of-life.** Microsoft ended mainstream support for
+> Windows 10 in October 2025. Windows 10 remains supported by this
+> project on a best-effort basis; new development targets Windows 11
+> first, but changes must not regress the Windows 10 build floor above.
 
 ## Shell
 

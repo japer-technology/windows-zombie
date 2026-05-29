@@ -5,8 +5,7 @@ Treat every deployment as privileged infrastructure, not a toy chatbot.
 
 ## Supported platform
 
-Security guidance applies to Windows 11 22H2+ Pro or Enterprise. Windows
-11 Home can run the project, but Group Policy and some firewall profile
+Security guidance applies to Windows 10 22H2 or Windows 11 22H2+ Pro or Enterprise. Windows 10/11 Home can run the project, but Group Policy and some firewall profile
 features are reduced.
 
 ## Trust model
@@ -94,7 +93,7 @@ Useful reports include:
 - whether the service ran as `LocalSystem` or `zombie`;
 - relevant policy snippets;
 - sanitized audit entries;
-- reproduction steps on Windows 11.
+- reproduction steps on Windows 10/11.
 
 ## Coordinated disclosure timeline
 

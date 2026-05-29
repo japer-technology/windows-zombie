@@ -7,6 +7,30 @@ and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed — Rename to `windows-zombie` + Windows 10/11 dual-target
+- **Renamed the project and repository** from `windows11-zombie` to
+  `windows-zombie` to reflect a version-neutral, dual-target identity.
+  Service/task/firewall identifiers move from `Windows11Zombie-*` to
+  `WindowsZombie-*`, the firewall group from `Windows11 Zombie` to
+  `Windows Zombie`, the PATH shim from `windows11-zombie.cmd` to
+  `windows-zombie.cmd`, and the Prometheus metrics prefix from
+  `windows11_zombie_*` to `windows_zombie_*`.
+- **First-class Windows 10 support.** Generalised the installer OS gate
+  `Assert-Windows11` into `Assert-SupportedWindows`, which accepts
+  Windows 10 build 17763 (1809) through Windows 11 with a soft, warn-only
+  floor. A backwards-compatible `Assert-Windows11` alias is retained.
+- **Automatic rename migration.** `Install.ps1 install`/`repair` now call
+  `Remove-LegacyServiceArtifact` to stop and remove legacy
+  `Windows11Zombie-*` service/tasks and the old firewall rule/group so
+  in-place upgrades from `windows11-zombie` are not orphaned. User data
+  under `C:\ProgramData\AiZombie\` is untouched. See
+  [`docs/UPGRADE.md`](docs/UPGRADE.md).
+- **Correct edition detection.** `server.py` `machine_facts()` now derives
+  Windows 10 vs 11 from the OS build number (>= 22000 is Windows 11)
+  instead of a brittle version-string prefix.
+- Swept docs, skills, and the agent system-prompt templates to describe a
+  "Windows 10 or Windows 11" target instead of "Windows 11".
+
 ### Added
 - **Secrets backup-on-edit.** `payload/bin/Secrets-Edit.ps1` now writes a
   timestamped backup of `C:\ProgramData\AiZombie\secrets\env` to

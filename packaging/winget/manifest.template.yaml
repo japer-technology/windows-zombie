@@ -8,9 +8,9 @@ PublisherSupportUrl: https://github.com/japer-technology/windows-zombie/issues
 PackageUrl: https://github.com/japer-technology/windows-zombie
 License: MIT
 LicenseUrl: https://github.com/japer-technology/windows-zombie/blob/main/LICENSE
-ShortDescription: Local AI sysadmin agent for Windows 11.
+ShortDescription: Local AI sysadmin agent for Windows 10 and 11.
 Description: |
-  A self-contained local AI sysadmin agent for Windows 11 that runs as a
+  A self-contained local AI sysadmin agent for Windows 10 and 11 that runs as a
   Windows service, exposes a chat UI on 127.0.0.1, and enforces a policy
   engine over privileged tools. See README and docs/THREAT-MODEL.md.
 Tags:

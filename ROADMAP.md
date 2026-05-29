@@ -23,7 +23,7 @@ and the per-item history in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Later (`0.6.x` and beyond)
 
-* End-to-end VM test in CI (Windows 11 sandbox or Azure VM).
+* End-to-end VM test in CI (Windows 10/11 sandbox or Azure VM).
 * OpenTelemetry exporter for fleet operators.
 * Group Policy / Intune deployment guide with worked examples.
 * Optional remote-attestation / TPM-bound audit anchors.

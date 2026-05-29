@@ -89,12 +89,14 @@ function Test-Standards {
     # paths.py keeps Linux-fallback constants on purpose, and this file
     # documents the standards check; both are allowed to mention the
     # legacy name. README.md and CHANGELOG.md intentionally credit the
-    # upstream `ubuntu-zombie` inspiration and keep the platform history.
+    # upstream `ubuntu-zombie` inspiration and keep the platform history,
+    # and WINDOWS10-POSSIBILITIES.md references it as the parity baseline.
     $allowList = @(
         (Join-Path $Repo 'payload/agent/paths.py'),
         (Join-Path $Repo 'tests/Smoke.ps1'),
         (Join-Path $Repo 'README.md'),
-        (Join-Path $Repo 'CHANGELOG.md')
+        (Join-Path $Repo 'CHANGELOG.md'),
+        (Join-Path $Repo 'WINDOWS10-POSSIBILITIES.md')
     )
     $bad = Get-ChildItem -Recurse -File -Path $Repo |
         Where-Object {

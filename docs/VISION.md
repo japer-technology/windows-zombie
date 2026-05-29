@@ -1,6 +1,6 @@
 # Vision
 
-windows-zombie turns a Windows 11 PC into a local, accountable AI Systems
+windows-zombie turns a Windows 10 or Windows 11 PC into a local, accountable AI Systems
 Administrator. The operator keeps control through policy, approval, audit,
 and a desktop session they can inspect.
 

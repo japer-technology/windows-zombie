@@ -15,7 +15,7 @@ and disclosure) and [`POLICY.md`](POLICY.md) (the gating mechanism).
 | Operator workstation (out of scope)                      |
 |                                                          |
 |  +----------------------------------------------------+  |
-|  | Windows 11 host                                    |  |
+|  | Windows 10/11 host                                    |  |
 |  |                                                    |  |
 |  |  +----------------------------------------------+  |  |
 |  |  | Loopback interface only (127.0.0.1:7878)     |  |  |
