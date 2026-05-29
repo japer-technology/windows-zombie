@@ -35,6 +35,12 @@ The helper opens Notepad++ when available and falls back to Notepad. It
 then disables inheritance, grants FullControl to `BUILTIN\Administrators`,
 `NT AUTHORITY\SYSTEM`, and `zombie`, and logs a SHA-256 audit entry.
 
+Before the editor opens, a timestamped backup of the current secrets file
+is written to `C:\ProgramData\AiZombie\secrets\backups\env.<UTC-stamp>`
+with the same restricted ACL. The ten most recent backups are kept and
+older ones are pruned on each edit. If a save leaves the file empty, the
+helper prints a roll-back command pointing at the newest backup.
+
 DPAPI encryption can be layered on by operators who require host-bound
 secret protection. The default is ACL'd plaintext for transparent recovery
 and parity with the legacy Unix file mode model.
