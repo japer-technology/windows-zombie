@@ -148,6 +148,8 @@ Restart-Service Windows11Zombie-Chat
 
 ## Development
 
+Inspired by https://github.com/japer-technology/ubuntu-zombie
+
 The repository uses PowerShell build targets and CI runs on
 `windows-latest`:
 
