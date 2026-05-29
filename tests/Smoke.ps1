@@ -88,10 +88,12 @@ function Test-Standards {
     Write-Host "==> Repo standards (no stray legacy names in active code)"
     # paths.py keeps Linux-fallback constants on purpose, and this file
     # documents the standards check; both are allowed to mention the
-    # legacy name.
+    # legacy name. README.md and CHANGELOG.md intentionally credit the
+    # upstream `ubuntu-zombie` inspiration and keep the platform history.
     $allowList = @(
         (Join-Path $Repo 'payload/agent/paths.py'),
         (Join-Path $Repo 'tests/Smoke.ps1'),
+        (Join-Path $Repo 'README.md'),
         (Join-Path $Repo 'CHANGELOG.md')
     )
     $bad = Get-ChildItem -Recurse -File -Path $Repo |
