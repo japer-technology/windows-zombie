@@ -8,7 +8,7 @@
         overridable via $env:ZOMBIE_USER) for the AI Systems Administrator
       * provisions the install tree at $env:ProgramData\AiZombie\
       * sets NTFS ACLs equivalent to the legacy 0750/0640 model
-      * installs Python 3.12, Node.js 22, Git, and Tailscale via WinGet
+      * installs Python 3.12, Node.js 20 (LTS), Git, and Tailscale via WinGet
       * sets up the agent Python venv and Playwright browser
       * registers the WindowsZombie-Chat service (auto-start, loopback)
       * registers WindowsZombie-Health as a Scheduled Task
@@ -18,7 +18,7 @@
     before mutating.
 
 .PARAMETER Subcommand
-    One of: install, verify, doctor, repair, uninstall.
+    One of: install, verify, doctor, repair, uninstall, backup, restore.
 
 .PARAMETER SkipDependencies
     Skip the WinGet bootstrap of Python/Node/Tailscale (use when those

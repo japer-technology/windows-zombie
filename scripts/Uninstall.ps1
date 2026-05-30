@@ -3,8 +3,9 @@
     Reverse the Windows Zombie installer.
 
 .DESCRIPTION
-    Stops and removes the chat service, scheduled health task, firewall
-    rules, install tree under $env:ProgramData\AiZombie, and (with
+    Stops and removes the chat service, scheduled health and backup
+    tasks, firewall rules, install tree under
+    $env:ProgramData\AiZombie, and (with
     confirmation) the agent local account. Does NOT remove Python,
     Node.js, Git, or Tailscale — those are general-purpose tools that
     other things may depend on.
@@ -48,9 +49,11 @@ if (Get-Service -Name $cfg.ServiceName -ErrorAction SilentlyContinue) {
     Stop-Service -Name $cfg.ServiceName -Force -ErrorAction SilentlyContinue
     sc.exe delete $cfg.ServiceName | Out-Null
 }
-if (Get-ScheduledTask -TaskName $cfg.HealthTask -ErrorAction SilentlyContinue) {
-    Unregister-ScheduledTask -TaskName $cfg.HealthTask -Confirm:$false
-    Write-AzLog -Level OK "Removed scheduled task '$($cfg.HealthTask)'."
+foreach ($taskName in @($cfg.HealthTask, 'WindowsZombie-Backup')) {
+    if (Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) {
+        Unregister-ScheduledTask -TaskName $taskName -Confirm:$false
+        Write-AzLog -Level OK "Removed scheduled task '$taskName'."
+    }
 }
 
 # 2. Firewall

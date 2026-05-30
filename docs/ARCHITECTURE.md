@@ -21,7 +21,7 @@ PowerShell helpers / WinGet / Services / Defender Firewall / GUI tools
 ```
 
 A separate Scheduled Task, `WindowsZombie-Health`, runs
-`Health-Check.ps1` as SYSTEM every five minutes and restarts or reports on
+`Health-Check.ps1` as SYSTEM every 15 minutes and restarts or reports on
 unhealthy service state.
 
 ## Installed layout

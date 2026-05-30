@@ -3,7 +3,7 @@
     One-shot health summary for Windows Zombie.
 
 .DESCRIPTION
-    Runs every five minutes from the ``WindowsZombie-Health``
+    Runs every 15 minutes from the ``WindowsZombie-Health``
     Scheduled Task. Checks service state, network/Tailscale,
     Defender Firewall, secrets, disk, audit log integrity, clock
     skew, and the loopback bind invariant. Writes a structured

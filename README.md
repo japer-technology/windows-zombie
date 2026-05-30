@@ -48,7 +48,7 @@ Repository: <https://github.com/japer-technology/windows-zombie>
 - `WindowsZombie-Chat`, an auto-starting Windows Service with restart on
   failure.
 - `WindowsZombie-Health`, a Scheduled Task that runs
-  `Health-Check.ps1` as SYSTEM every five minutes.
+  `Health-Check.ps1` as SYSTEM every 15 minutes.
 - `C:\ProgramData\AiZombie\` containing `bin\`, `agent\`, `etc\`,
   `secrets\`, `logs\`, `state\`, `agent-env\`, and `pi\`.
 - A machine-wide `windows-zombie.cmd` shim on `PATH` that launches
