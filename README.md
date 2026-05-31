@@ -163,5 +163,8 @@ Do not run the installer, uninstaller, or service helpers on a workstation
 you are not prepared to modify. Use Windows Sandbox, a disposable Hyper-V
 VM, or another throwaway Windows 10/11 test machine.
 
+# Inspiration
+
+The Ubuntu version is the master concept and feature set: https://github.com/japer-technology/ubuntu-zombie
 See `docs/QUICKSTART.md`, `docs/CONFIGURATION.md`,
 `docs/ARCHITECTURE.md`, and `SECURITY.md` for deeper operational details.
