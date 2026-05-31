@@ -520,6 +520,10 @@ function New-AiZombieBackup {
     $stage = Join-Path $tempBase "windows-zombie-backup-$stamp"
     if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
     New-Item -ItemType Directory -Path $stage | Out-Null
+    # Canonicalize the staging path. On Windows $env:TEMP can be an 8.3 short
+    # path (e.g. RUNNER~1) while Get-ChildItem returns long-form FullNames, so
+    # a substring offset against the short path would corrupt manifest entries.
+    $stage = (Get-Item -LiteralPath $stage).FullName
 
     try {
         if (Test-Path $cfg.EtcDir) {
@@ -563,7 +567,7 @@ function New-AiZombieBackup {
             Sort-Object FullName |
             ForEach-Object {
                 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash.ToLower()
-                $rel = $_.FullName.Substring($stage.Length).TrimStart('\','/').Replace('\','/')
+                $rel = [System.IO.Path]::GetRelativePath($stage, $_.FullName).Replace('\', '/')
                 "$hash  $rel"
             }
         $entries | Set-Content -LiteralPath $manifestPath -Encoding ascii
@@ -620,6 +624,7 @@ function Restore-AiZombieBackup {
     $tempBase = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { [System.IO.Path]::GetTempPath() }
     $stage = Join-Path $tempBase ("windows-zombie-restore-" + [Guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $stage | Out-Null
+    $stage = (Get-Item -LiteralPath $stage).FullName
     try {
         Expand-Archive -LiteralPath $Path -DestinationPath $stage -Force
 
