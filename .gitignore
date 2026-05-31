@@ -1,4 +1,4 @@
-# Ubuntu Zombie .gitignore
+# Windows Zombie .gitignore
 #
 # Keep accidental local artifacts and secrets out of the repository.
 
@@ -44,21 +44,14 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-store/
 
-# Debian / package build artifacts
-debian/.debhelper/
-debian/files
-debian/*.substvars
-debian/*.debhelper
-debian/*.log
-debian/tmp/
-debian/ubuntu-zombie/
-*.deb
-*.buildinfo
-*.changes
-*.dsc
-*.tar.gz
-*.tar.xz
-*.tar.zst
+# Windows packaging build artifacts (Chocolatey / WiX / WinGet)
+*.nupkg
+*.msi
+*.msm
+*.wixobj
+*.wixpdb
+*.cab
+*.zip
 
 # Editor / OS
 .vscode/

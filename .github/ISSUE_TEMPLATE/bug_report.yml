@@ -8,16 +8,16 @@ body:
       value: |
         Thanks for taking the time to file a bug.
 
-        Before filing, please run `sudo /opt/ai-zombie/bin/collect-diagnostics`
-        (or `sudo ./scripts/install.sh doctor` on a failed install) and
-        attach the redacted output. **Do not paste API keys, the VNC password,
-        Tailscale auth keys, or the contents of `/opt/ai-zombie/secrets/`.**
+        Before filing, please run `pwsh -File payload/bin/Collect-Diagnostics.ps1`
+        (or `pwsh -File scripts/Install.ps1 doctor` on a failed install) and
+        attach the redacted output. **Do not paste API keys, the Tailscale
+        auth key, or the contents of `C:\ProgramData\AiZombie\secrets\`.**
   - type: input
-    id: ubuntu-version
+    id: windows-version
     attributes:
-      label: Ubuntu version
-      description: Output of `lsb_release -ds` (must be a supported Desktop LTS).
-      placeholder: "Ubuntu 24.04.1 LTS"
+      label: Windows version
+      description: Output of `(Get-ComputerInfo).OsName` and `winver` (must be a supported Windows 10/11 edition).
+      placeholder: "Windows 11 Pro 23H2 (22631.3447)"
     validations:
       required: true
   - type: dropdown
@@ -26,22 +26,22 @@ body:
       label: Install path
       description: Which invocation surfaced the bug?
       options:
-        - "Fresh install (first `install.sh install`)"
+        - "Fresh install (first `Install.ps1 install`)"
         - "Re-run install (idempotent path)"
         - "verify"
         - "doctor"
         - "repair"
         - "uninstall"
-        - "Runtime (chat service, helpers, systemd units)"
+        - "Runtime (chat service, helpers, Windows Service)"
         - "Other / not sure"
     validations:
       required: true
   - type: input
     id: version
     attributes:
-      label: Ubuntu Zombie version
-      description: Output of `./scripts/install.sh --version` or contents of the `VERSION` file.
-      placeholder: "0.2.0"
+      label: Windows Zombie version
+      description: Contents of the `VERSION` file or the version reported by `Install.ps1 verify`.
+      placeholder: "0.4.0"
     validations:
       required: true
   - type: textarea
@@ -56,30 +56,30 @@ body:
     attributes:
       label: Steps to reproduce
       description: Exact commands and any environment variables that were set.
-      render: bash
+      render: powershell
     validations:
       required: true
   - type: textarea
     id: verify-output
     attributes:
       label: `verify` / `doctor` output
-      description: Redacted output of `sudo ./scripts/install.sh verify` and/or `doctor`.
+      description: Redacted output of `pwsh -File scripts/Install.ps1 verify` and/or `doctor`.
       render: text
   - type: textarea
     id: logs
     attributes:
       label: Relevant log excerpts
       description: |
-        Redacted excerpts from `/var/log/ubuntu-zombie-install.log`,
-        `/var/log/ubuntu-zombie/audit.log`, or
-        `journalctl -u ubuntu-zombie-chat.service`.
+        Redacted excerpts from `C:\ProgramData\AiZombie\logs\install.log`,
+        `C:\ProgramData\AiZombie\logs\audit.log`, or the Application event log
+        (`Get-WinEvent -LogName Application -ProviderName WindowsZombie-Chat -MaxEvents 50`).
       render: text
   - type: checkboxes
     id: confirmations
     attributes:
       label: Confirmations
       options:
-        - label: I have removed API keys, the VNC password, Tailscale auth keys, and any host-identifying secrets from the report.
+        - label: I have removed API keys, the Tailscale auth key, and any host-identifying secrets from the report.
           required: true
         - label: I have searched existing issues for duplicates.
           required: true
