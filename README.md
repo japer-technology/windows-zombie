@@ -6,10 +6,13 @@
 
 <p align="center">
   <a href="https://github.com/japer-technology/windows-zombie/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/japer-technology/windows-zombie/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/japer-technology/windows-zombie/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/japer-technology/windows-zombie/actions/workflows/codeql.yml/badge.svg"></a>
   <a href="https://github.com/japer-technology/windows-zombie/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/japer-technology/windows-zombie?display_name=tag&sort=semver"></a>
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/japer-technology/windows-zombie"></a>
   <a href="SECURITY.md"><img alt="Security policy" src="https://img.shields.io/badge/security-policy-blue"></a>
   <a href="https://securityscorecards.dev/viewer/?uri=github.com/japer-technology/windows-zombie"><img alt="OpenSSF Scorecard" src="https://api.securityscorecards.dev/projects/github.com/japer-technology/windows-zombie/badge"></a>
+  <a href="docs/REQUIRES.md"><img alt="Windows 10 | 11" src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white"></a>
+  <a href="https://www.japer.technology"><img alt="Assisted Development" src="https://img.shields.io/badge/Assisted-Development-2b2bff?logo=openai&logoColor=white"></a>
 </p>
 
 > **Windows Zombie adds a private, policy-gated AI Systems
@@ -145,6 +148,24 @@ To run the service as the dedicated `zombie` account instead of
 sc.exe config WindowsZombie-Chat obj= .\zombie password= <password>
 Restart-Service WindowsZombie-Chat
 ```
+
+## Trust model in one paragraph
+
+The Windows policy engine in `payload/etc/policy.yaml` is the operating
+identity of the AI Systems Administrator: the service runs as
+`LocalSystem` by default, or as a dedicated local Administrators account
+named `zombie` if you reassign the service identity. The configured cloud
+LLM provider authenticates the administrator. The operator owns the
+machine, the secrets file, the API key, and (if Tailscale is enabled) the
+Tailscale account, and can rotate, revoke, or uninstall any of them at any
+time. Privileged actions pass through the local policy gate before they
+run: read-only diagnostics may auto-run, mutating actions need operator
+approval, and destructive actions require an explicit confirmation phrase.
+Every action is audit-logged to `C:\ProgramData\AiZombie\logs\`. The chat
+UI binds to `127.0.0.1:7878` only; reach it over RDP or a Tailscale tunnel
+from a trusted operator machine rather than exposing the port. Read
+[`SECURITY.md`](SECURITY.md) and [`docs/THREAT-MODEL.md`](docs/THREAT-MODEL.md)
+before running the installer.
 
 ## Development
 
