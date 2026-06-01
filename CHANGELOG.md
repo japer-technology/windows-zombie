@@ -7,6 +7,28 @@ and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added — Chat slash commands and version endpoint (payload parity)
+- **Client-side `/commands` in the chat UI.** The web console now supports
+  a slash-command palette inspired by the upstream `ubuntu-zombie`
+  master: `/help`, `/clear`, `/new` (alias `/reset`), `/examples`,
+  `/tools`, `/health`, `/status`, `/version`, `/audit`, `/conversations`
+  (alias `/history`), `/load <id>`, `/shortcuts`, and `/stop`. Diagnostic
+  commands read the existing read-only backend endpoints and render
+  locally without round-tripping the model.
+- **`/api/version` endpoint** plus `version_info()`/`app_version()` helpers
+  in `server.py`, backing the `/version` chat command. `Install.ps1` now
+  deploys the `VERSION` file into the install root so the endpoint reports
+  the installed payload version instead of `unknown`.
+- **In-flight turn controls.** A "Thinking…" indicator, a Stop button, and
+  abortable requests with a client-side timeout keep the UI from wedging
+  on a slow turn. Enter sends and Shift+Enter inserts a newline.
+- **`History.conversation_exists()`** so `/api/conversation/<id>` returns a
+  proper `404` with a helpful message for the `/load` command.
+
+### Fixed
+- Corrected stray `Ubuntu Zombie` branding in the chat console title and
+  header to `Windows Zombie`.
+
 ### Changed — Rename to `windows-zombie` + Windows 10/11 dual-target
 - **Renamed the project and repository** from `windows11-zombie` to
   `windows-zombie` to reflect a version-neutral, dual-target identity.

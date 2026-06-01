@@ -209,6 +209,41 @@ def machine_facts() -> dict[str, str]:
     return facts
 
 
+def _read_text_file(path: Path) -> str | None:
+    try:
+        text = path.read_text(encoding="utf-8").strip()
+    except OSError:
+        return None
+    return text or None
+
+
+def app_version() -> str:
+    """Best-effort payload version.
+
+    Read from a ``VERSION`` file deployed alongside the agent tree
+    (``C:\\ProgramData\\AiZombie\\VERSION`` in production) or the
+    repository root when running from a checkout. Falls back to
+    ``"unknown"`` so the ``/version`` chat command never errors.
+    """
+    for candidate in (HERE.parent / "VERSION", HERE.parent.parent / "VERSION"):
+        text = _read_text_file(candidate)
+        if text:
+            return text
+    return "unknown"
+
+
+def version_info() -> dict[str, str]:
+    """App version plus the pinned provider-bridge versions."""
+    info = {"version": app_version()}
+    pi_mono_ver = _read_text_file(HERE / "pi-mono.version")
+    if pi_mono_ver:
+        info["pi_mono"] = pi_mono_ver
+    pi_ai_ver = _read_text_file(HERE / "pi-ai.version")
+    if pi_ai_ver:
+        info["pi_ai"] = pi_ai_ver
+    return info
+
+
 # ---------------------------------------------------------------------------
 # Application state
 # ---------------------------------------------------------------------------
@@ -639,6 +674,9 @@ class Handler(BaseHTTPRequestHandler):
         if self.path == "/api/health":
             self._send_json({"ok": True, "facts": machine_facts()})
             return
+        if self.path == "/api/version":
+            self._send_json(version_info())
+            return
         if self.path == "/api/conversations":
             self._send_json({"conversations": self.app.history.list_conversations()})
             return
@@ -647,6 +685,9 @@ class Handler(BaseHTTPRequestHandler):
                 cid = int(self.path.rsplit("/", 1)[1])
             except ValueError:
                 self._send_json({"error": "bad id"}, 400)
+                return
+            if not self.app.history.conversation_exists(cid):
+                self._send_json({"error": f"No conversation #{cid}."}, 404)
                 return
             self._send_json({
                 "messages": self.app.history.get_messages(cid),
