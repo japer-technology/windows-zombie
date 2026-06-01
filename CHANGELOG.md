@@ -8,7 +8,7 @@ and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [Unreleased]
 
 ### Added — Chat slash commands and version endpoint (payload parity)
-- **Client-side `/commands` in the chat UI.** The web console now supports
+- **Client-side slash commands in the chat UI.** The web console now supports
   a slash-command palette inspired by the upstream `ubuntu-zombie`
   master: `/help`, `/clear`, `/new` (alias `/reset`), `/examples`,
   `/tools`, `/health`, `/status`, `/version`, `/audit`, `/conversations`
