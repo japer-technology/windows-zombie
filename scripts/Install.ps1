@@ -271,6 +271,14 @@ function Copy-Payload {
     $args = @("`"$src`"", "`"$DestRoot`"", '/E', '/COPY:DAT', '/R:2', '/W:2', '/NFL', '/NDL', '/NJH', '/NJS', '/NP')
     Start-Process -FilePath 'robocopy.exe' -ArgumentList $args -Wait -NoNewWindow -PassThru | Out-Null
     # robocopy exit codes 0-7 are success; 8+ is failure.
+
+    # Deploy the VERSION file alongside the agent tree so the chat
+    # service's /version endpoint (and the /version chat command) can
+    # report the installed payload version instead of "unknown".
+    $versionFile = Join-Path $SourceRoot 'VERSION'
+    if (Test-Path $versionFile) {
+        Copy-Item -LiteralPath $versionFile -Destination (Join-Path $DestRoot 'VERSION') -Force
+    }
 }
 
 function Install-CoreDependencies {
