@@ -212,8 +212,9 @@ def machine_facts() -> dict[str, str]:
 def _read_text_file(path: Path) -> str | None:
     try:
         text = path.read_text(encoding="utf-8").strip()
-    except OSError:
+    except (OSError, UnicodeError):
         return None
+    return text or None
     return text or None
 
 
