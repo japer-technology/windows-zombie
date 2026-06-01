@@ -560,7 +560,6 @@ async function handleSlashCommand(input) {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (sendBtn.disabled) return; // a turn is already in flight
   const prompt = promptEl.value.trim();
   if (!prompt) return;
   if (await handleSlashCommand(prompt)) {
@@ -568,6 +567,7 @@ form.addEventListener("submit", async (event) => {
     promptEl.focus();
     return;
   }
+  if (sendBtn.disabled) return; // a turn is already in flight
   addMessage("user", prompt);
   promptEl.value = "";
   setBusy(true);
