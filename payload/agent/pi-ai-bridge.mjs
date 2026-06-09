@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// pi-ai-bridge.mjs — minimal stdin/stdout bridge from Ubuntu Zombie's
+// pi-ai-bridge.mjs — minimal stdin/stdout bridge from Windows Zombie's
 // Python chat service to the @earendil-works/pi-ai library.
 //
 // The Python surface (provider.chat) shells out to this script so
@@ -8,28 +8,49 @@
 //
 // Wire format
 // -----------
-// stdin: a single JSON object
+// stdin: a single JSON object. Two operations are supported, selected
+// by the optional "op" field (defaults to "complete"):
+//
+//   complete — run a one-shot chat completion (the default):
 //   {
+//     "op":       "complete",   // optional
 //     "provider": "openai" | "anthropic" | "gemini" | "xai"
-//                 | "openrouter" | "mistral" | "groq",
+//                 | "openrouter" | "mistral" | "groq" | "lmstudio",
 //     "model":    "<provider model id>",
 //     "messages": [{ "role": "system"|"user"|"assistant",
 //                    "content": "..." }, ...]
 //   }
 //
+//   list_models — list the models a provider exposes. Needs no model.
+//   For hosted providers the catalogue is pi-ai's static one (no API
+//   key required). For a local, OpenAI-compatible provider (lmstudio)
+//   the catalogue is fetched live from the server's /models endpoint —
+//   its base URL is read from ~/.pi/agent/models.json — so the operator
+//   sees the models their server actually serves:
+//   {
+//     "op":       "list_models",
+//     "provider": "openai" | ...
+//   }
+//
 // stdout: a single JSON object
-//   { "ok": true,  "text": "<assistant reply>" }                (success)
+//   { "ok": true,  "text": "<assistant reply>" }                (complete)
+//   { "ok": true,  "models": [{ "id", "name", "reasoning",
+//                               "contextWindow" }, ...] }        (list_models)
 //   { "ok": false, "error": "<message>", "code": "<short id>" } (failure)
 //
 // The bridge never reads provider keys directly — it relies on the
 // environment variables already in scope (OPENAI_API_KEY,
 // ANTHROPIC_API_KEY, GEMINI_API_KEY, XAI_API_KEY,
-// OPENROUTER_API_KEY, MISTRAL_API_KEY, GROQ_API_KEY) which
+// OPENROUTER_API_KEY, MISTRAL_API_KEY, GROQ_API_KEY,
+// LMSTUDIO_API_KEY) which
 // payload/agent/providers.py forwards from the secrets file.
 
 import { readFileSync } from "node:fs";
+import { delimiter, dirname, join, resolve } from "node:path";
+import { execPath } from "node:process";
+import { pathToFileURL } from "node:url";
 
-// Map Ubuntu Zombie provider names (operator-visible) to the provider
+// Map Windows Zombie provider names (operator-visible) to the provider
 // ids that @earendil-works/pi-ai uses internally. Keep this list in
 // lockstep with providers.py's _PI_AI_PROVIDERS.
 const PROVIDER_MAP = {
@@ -40,6 +61,7 @@ const PROVIDER_MAP = {
   openrouter: "openrouter",
   mistral: "mistral",
   groq: "groq",
+  lmstudio: "lmstudio",
 };
 
 // Map provider name to the env var that must be set. Mirrors
@@ -52,6 +74,7 @@ const KEY_ENV = {
   openrouter: "OPENROUTER_API_KEY",
   mistral: "MISTRAL_API_KEY",
   groq: "GROQ_API_KEY",
+  lmstudio: "LMSTUDIO_API_KEY",
 };
 
 function emit(obj) {
@@ -62,6 +85,190 @@ function emit(obj) {
 function die(error, code = "bridge_error") {
   emit({ ok: false, error: String(error), code });
   process.exit(1);
+}
+
+// Resolve the OpenAI-compatible base URL for a local/custom provider.
+//
+// Providers such as `lmstudio` have no static catalogue in pi-ai; their
+// models live on the server itself. The server URL is recorded in
+// ~/.pi/agent/models.json (the same file pi-mono reads), so we look the
+// provider's `baseUrl` up there. The path is overridable via
+// ZOMBIE_PI_MODELS_JSON for tests. An explicit OPENAI_BASE_URL /
+// OPENAI_API_BASE env wins for the openai provider so an operator
+// pointing the hosted client at a local server still gets a live list.
+// Returns the trimmed base URL string, or "" when none is configured or
+// the configured value is not an absolute http(s) URL.
+function localBaseUrl(provider) {
+  let baseUrl = "";
+  if (provider === "openai") {
+    const envUrl = process.env.OPENAI_BASE_URL || process.env.OPENAI_API_BASE;
+    if (envUrl) baseUrl = String(envUrl).trim();
+  }
+  if (!baseUrl) {
+    const home = process.env.USERPROFILE || process.env.HOME;
+    const path =
+      process.env.ZOMBIE_PI_MODELS_JSON ||
+      (home ? join(home, ".pi", "agent", "models.json") : "");
+    if (!path) return "";
+    let cfg;
+    try {
+      cfg = JSON.parse(readFileSync(path, "utf8"));
+    } catch {
+      return "";
+    }
+    const entry = cfg && cfg.providers && cfg.providers[provider];
+    const fromCfg = entry && entry.baseUrl;
+    baseUrl = typeof fromCfg === "string" ? fromCfg.trim() : "";
+  }
+  // Only an absolute http(s) URL can be queried; anything else (a
+  // relative path, a bare host, an empty string) is unusable here.
+  return /^https?:\/\//i.test(baseUrl) ? baseUrl : "";
+}
+
+// How long to wait for the local server's /models endpoint before giving
+// up, so `/model` never blocks on an unreachable or wedged server.
+const LOCAL_MODELS_TIMEOUT_MS = 8000;
+
+// Fetch the catalogue a local OpenAI-compatible server advertises via
+// GET {baseUrl}/models (the standard /v1/models route — baseUrl already
+// includes the /v1 segment). Returns the normalised model list, or
+// throws on a network/parse error so the caller can fall back to the
+// static catalogue. Bounded by a short timeout so /model never hangs on
+// an unreachable server.
+async function fetchLiveModels(baseUrl, keyEnv) {
+  const url = `${baseUrl.replace(/\/+$/, "")}/models`;
+  const headers = { Accept: "application/json" };
+  const key = keyEnv && process.env[keyEnv];
+  if (key) headers.Authorization = "Bearer " + key;
+  const resp = await fetch(url, {
+    headers,
+    signal: AbortSignal.timeout(LOCAL_MODELS_TIMEOUT_MS),
+  });
+  if (!resp.ok) {
+    throw new Error(`GET ${url} -> HTTP ${resp.status}`);
+  }
+  const body = await resp.json();
+  // OpenAI lists models under `data`; tolerate a bare array too.
+  const rows = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+  return rows
+    .map((m) => (typeof m === "string" ? { id: m } : m))
+    .filter((m) => m && m.id)
+    .map((m) => ({
+      id: String(m.id),
+      name: String(m.name || m.id),
+      reasoning: !!m.reasoning,
+      // `context_length` is the snake_case field local OpenAI-compatible
+      // servers (LM Studio, llama.cpp) emit; `contextWindow` mirrors the
+      // pi-ai catalogue shape. Honour whichever the server provided.
+      contextWindow:
+        typeof m.contextWindow === "number"
+          ? m.contextWindow
+          : typeof m.context_length === "number"
+            ? m.context_length
+            : null,
+    }));
+}
+
+// Resolve and import @earendil-works/pi-ai.
+//
+// The package is installed *globally* (npm install -g, see
+// scripts/Install.ps1) and this bridge is deployed to
+// %ProgramData%\AiZombie\agent\, which is outside any node_modules tree.
+// Node's ESM loader resolves bare specifiers by walking node_modules up
+// from the importing file and — unlike CommonJS require — ignores
+// NODE_PATH, so a plain `import("@earendil-works/pi-ai")` cannot see a
+// global install and dies with ERR_MODULE_NOT_FOUND. That broke the
+// /model command (and every completion) on a normal deployment.
+//
+// We therefore try the bare import first (covers a local/dev install or
+// a bundled node_modules) and, if that fails, locate the package inside
+// the known global node_modules directories and import its real entry
+// file by absolute URL. Reading the entry from package.json honours
+// pi-ai's "exports" map (it exposes only an "import" condition, so
+// require.resolve cannot be used here).
+let PI_AI_CACHE;
+
+function piAiEntry(packageDir) {
+  let pkg;
+  try {
+    pkg = JSON.parse(readFileSync(join(packageDir, "package.json"), "utf8"));
+  } catch {
+    return null;
+  }
+  let rel;
+  const exp = pkg.exports;
+  if (typeof exp === "string") {
+    rel = exp;
+  } else if (exp && typeof exp === "object") {
+    const dot = exp["."];
+    if (typeof dot === "string") {
+      rel = dot;
+    } else if (dot && typeof dot === "object") {
+      rel = dot.import || dot.node || dot.default;
+    }
+  }
+  if (!rel) rel = pkg.module || pkg.main || "index.js";
+  return resolve(packageDir, rel);
+}
+
+function globalModuleDirs() {
+  const dirs = [];
+  const seen = new Set();
+  const add = (dir) => {
+    if (dir && !seen.has(dir)) {
+      seen.add(dir);
+      dirs.push(dir);
+    }
+  };
+  // NODE_PATH (forwarded by providers.py) — split on the platform
+  // delimiter and honour each entry even though ESM ignores it natively.
+  if (process.env.NODE_PATH) {
+    for (const part of process.env.NODE_PATH.split(delimiter)) add(part);
+  }
+  // Windows global layout: npm installs global packages under
+  // <node-dir>\node_modules (e.g. %ProgramFiles%\nodejs\node_modules)
+  // and also under %APPDATA%\npm\node_modules.
+  add(resolve(dirname(execPath), "node_modules"));
+  if (process.env.APPDATA) {
+    add(join(process.env.APPDATA, "npm", "node_modules"));
+  }
+  // Standard Unix global prefix for the running node and common
+  // fallbacks, so a dev run on Linux/macOS still resolves.
+  add(resolve(dirname(execPath), "..", "lib", "node_modules"));
+  add("/usr/lib/node_modules");
+  add("/usr/local/lib/node_modules");
+  return dirs;
+}
+
+async function loadPiAi() {
+  if (PI_AI_CACHE) return PI_AI_CACHE;
+  let lastErr;
+  try {
+    PI_AI_CACHE = await import("@earendil-works/pi-ai");
+    return PI_AI_CACHE;
+  } catch (err) {
+    lastErr = err;
+  }
+  const searched = [];
+  for (const base of globalModuleDirs()) {
+    searched.push(base);
+    const entry = piAiEntry(join(base, "@earendil-works", "pi-ai"));
+    if (!entry) continue;
+    try {
+      PI_AI_CACHE = await import(pathToFileURL(entry).href);
+      return PI_AI_CACHE;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  const where = searched.length
+    ? ` (searched: ${searched.join(", ")})`
+    : "";
+  die(
+    `failed to load @earendil-works/pi-ai: ${lastErr ? lastErr.message : "not found"}${where}. ` +
+      "Reinstall via scripts/Install.ps1.",
+    "pi_ai_missing",
+  );
 }
 
 async function readStdin() {
@@ -99,6 +306,58 @@ async function main() {
     );
   }
 
+  // list_models: a local, OpenAI-compatible provider (lmstudio, or any
+  // provider pointed at a custom base URL) has no static catalogue in
+  // pi-ai, so query the server's live /models endpoint first. Only fall
+  // back to pi-ai's bundled catalogue when no live source is configured
+  // or the server cannot be reached. Resolved before the API-key check
+  // so a keyless local server can still list its models.
+  const op = String(req.op || "complete").toLowerCase();
+  if (op === "list_models") {
+    const baseUrl = localBaseUrl(provider);
+    if (baseUrl) {
+      try {
+        const live = await fetchLiveModels(baseUrl, KEY_ENV[provider]);
+        if (live.length) {
+          emit({ ok: true, models: live });
+          return;
+        }
+      } catch (err) {
+        // A local provider has no static fallback, so surface why the
+        // live query failed instead of silently returning an empty list.
+        if (provider === "lmstudio") {
+          die(
+            `failed to list models from local server at ${baseUrl}: ${err.message}`,
+            "list_failed",
+          );
+        }
+        // Hosted provider with a base-URL override: fall through to the
+        // bundled catalogue below.
+      }
+    }
+    const pi = await loadPiAi();
+    let models;
+    try {
+      models = pi.getModels(piProvider) || [];
+    } catch (err) {
+      die(
+        `failed to list models for provider "${provider}": ${err.message}`,
+        "list_failed",
+      );
+    }
+    const out = models
+      .filter((m) => m && m.id)
+      .map((m) => ({
+        id: String(m.id),
+        name: String(m.name || m.id),
+        reasoning: !!m.reasoning,
+        contextWindow:
+          typeof m.contextWindow === "number" ? m.contextWindow : null,
+      }));
+    emit({ ok: true, models: out });
+    return;
+  }
+
   const keyEnv = KEY_ENV[provider];
   if (keyEnv && !process.env[keyEnv]) {
     die(`${keyEnv} is not set`, "missing_key");
@@ -124,16 +383,7 @@ async function main() {
     }
   }
 
-  let pi;
-  try {
-    pi = await import("@earendil-works/pi-ai");
-  } catch (err) {
-    die(
-      `failed to load @earendil-works/pi-ai: ${err.message}. ` +
-        "Reinstall via scripts/install.sh.",
-      "pi_ai_missing",
-    );
-  }
+  const pi = await loadPiAi();
 
   let modelHandle;
   try {

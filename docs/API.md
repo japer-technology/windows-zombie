@@ -82,6 +82,23 @@ Returns the closed tool registry.
 }
 ```
 
+### `GET /api/models`
+
+Lists the models the active provider exposes, backing the `/model`
+chat command. `current` is the model the agent would use now; for
+providers without a static catalogue (`openrouter`, `lmstudio`) the
+list may be empty and an `error` field explains why.
+
+```json
+{
+  "provider": "openai",
+  "current": "gpt-4o-mini",
+  "models": [
+    { "id": "gpt-4o-mini", "name": "GPT-4o mini", "reasoning": false, "context_window": 128000 }
+  ]
+}
+```
+
 ### `POST /api/message`
 
 Send a new user message. Creates a conversation when
@@ -119,6 +136,27 @@ Approve or deny a pending tool call.
 `decision` is `approve` or `deny`. `phrase` is required when the
 classification is `destructive`. Returns the queued tool call's
 outcome.
+
+### `POST /api/model`
+
+Select the model the active provider uses for subsequent turns,
+backing `/model <id>`. The id is validated against the provider's
+catalogue when one is available; free-form providers (`lmstudio`)
+accept any non-empty id.
+
+```json
+{ "model": "gpt-4o" }
+```
+
+Response:
+
+```json
+{ "ok": true, "provider": "openai", "model": "gpt-4o" }
+```
+
+Returns `{ "error": "..." }` (HTTP 200 with an error field, or 400 for
+a missing/empty `model`) when no provider is configured or the id is
+unknown.
 
 ## Request and response limits
 

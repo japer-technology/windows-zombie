@@ -7,14 +7,38 @@ and the project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added — Runtime model selection (`/model`, payload parity)
+- **`/model` chat command.** The chat console now lists the models the
+  configured provider offers and lets the operator switch between them at
+  runtime, ported from the upstream `ubuntu-zombie`. `/model` (no
+  argument) lists the provider's catalogue with the active model marked
+  `*`; `/model <id>` pins a different model for the running
+  `WindowsZombie-Chat` service. Backed by:
+  - a new `list_models` op in `pi-ai-bridge.mjs` (uses pi-ai's bundled
+    `getModels` catalogue for hosted providers and a live `/models`
+    fetch for local OpenAI-compatible servers), with a robust global
+    `@earendil-works/pi-ai` loader that resolves the package from the
+    Windows/npm global `node_modules` tree;
+  - `providers.list_models()` / `current_model()` / `active_provider()`
+    / `set_active_model()` helpers and a shared `_run_bridge()`;
+  - `App.models_info()` / `App.set_model()` and the
+    `GET /api/models` + `POST /api/model` endpoints in `server.py`.
+- **`lmstudio` provider.** A local, OpenAI-compatible server (LM Studio,
+  Ollama, llama.cpp) is now a first-class `ZOMBIE_PROVIDER` value
+  (`LMSTUDIO_API_KEY`); like `openrouter` it requires `ZOMBIE_MODEL`.
+  Providers without a static catalogue accept a free-form model id.
+- **`tests/python/test_providers.py`** plus a `stub-pi-ai-bridge.mjs`
+  fixture cover the model-catalogue and selection helpers and the
+  server endpoints without requiring the real provider package.
+
 ### Added — Chat slash commands and version endpoint (payload parity)
 - **Client-side slash commands in the chat UI.** The web console now supports
   a slash-command palette inspired by the upstream `ubuntu-zombie`
   master: `/help`, `/clear`, `/new` (alias `/reset`), `/examples`,
-  `/tools`, `/health`, `/status`, `/version`, `/audit`, `/conversations`
-  (alias `/history`), `/load <id>`, `/shortcuts`, and `/stop`. Diagnostic
-  commands read the existing read-only backend endpoints and render
-  locally without round-tripping the model.
+  `/tools`, `/health`, `/status`, `/version`, `/model`, `/audit`,
+  `/conversations` (alias `/history`), `/load <id>`, `/shortcuts`, and
+  `/stop`. Diagnostic commands read the existing read-only backend
+  endpoints and render locally without round-tripping the model.
 - **`/api/version` endpoint** plus `version_info()`/`app_version()` helpers
   in `server.py`, backing the `/version` chat command. `Install.ps1` now
   deploys the `VERSION` file into the install root so the endpoint reports

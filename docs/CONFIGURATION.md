@@ -17,6 +17,16 @@ Restart-Service WindowsZombie-Chat
 Service processes read machine environment at start, so restart
 `WindowsZombie-Chat` after changes.
 
+`ZOMBIE_PROVIDER` selects the LLM backend: `openai`, `anthropic`,
+`gemini`, `xai`, `mistral`, `groq`, `openrouter`, or `lmstudio` (a
+local, OpenAI-compatible server such as LM Studio or Ollama). Supply
+the matching API key in the secrets file. `openrouter` and `lmstudio`
+have no default model, so set `ZOMBIE_MODEL` for them.
+
+You can also switch models at runtime from the chat console without a
+restart: type `/model` to list the active provider's catalogue and
+`/model <id>` to pin a different one for the running service.
+
 ## Secrets file
 
 Secrets live at:
